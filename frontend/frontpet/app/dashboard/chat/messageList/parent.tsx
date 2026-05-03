@@ -30,8 +30,10 @@ interface Message {
 
 const LOGGED_IN_USER_ID = "cfbbba38-ea04-4684-acb5-f2cbcc55d801"; // Replace with actual user ID
 export default function ChatUI() {
-  const { data: messagesList = [], isLoading, error } = useGetMessages();
-  const { data: usersList = [] } = useGetUsers(); // Fetch users list
+  const { data: messagesData = [], isLoading, error } = useGetMessages();
+  const messagesList = messagesData as Message[];
+  const { data: usersData = [] } = useGetUsers();
+  const usersList = usersData as { id: string; role?: string }[];
   const [selectedChatUser, setSelectedChatUser] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState("");
   const [isSending, setIsSending] = useState(false);

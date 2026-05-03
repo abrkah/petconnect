@@ -100,23 +100,27 @@ export class UserService {
   }
 
   async sendPasswordEmail(email: string, password: string) {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'PetCare Account Password',
-      html: `
-        <h2>Welcome to PetCare</h2>
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'PetConnect Account Password',
+        html: `
+        <h2>Welcome to PetConnect</h2>
         <p>Your account has been created.</p>
         <p><b>Password:</b> ${password}</p>
       `,
-    });
+      });
+    } catch {
+      /* optional in dev when SMTP is not configured */
+    }
   }
 }

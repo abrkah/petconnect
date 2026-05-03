@@ -14,8 +14,10 @@ import { useGetUsers } from "@/app/utils/store/server/user/queries";
 const ChatUI = () => {
   const LOGGED_IN_USER_ID = useAuthenticationStore.getState().userId;
 
-  const { data: messagesList = [], isLoading, error } = useGetMessages();
-  const { data: usersList = [], isLoading: isUsersLoading, error: usersError } = useGetUsers();
+  const { data: rawMessages = [], isLoading, error } = useGetMessages();
+  const messagesList = rawMessages as { id: string }[];
+  const { data: rawUsers = [], isLoading: isUsersLoading, error: usersError } = useGetUsers();
+  const usersList = rawUsers as { id: string }[];
 
   const { mutate: sendMessage } = useCreateMessage();
 
@@ -35,7 +37,7 @@ const ChatUI = () => {
       messagesList.length === messages.length &&
       messagesList.every((msg, idx) => msg.id === messages[idx]?.id);
 
-    if (!isSame) setMessages(messagesList);
+    if (!isSame) setMessages(messagesList as never);
   }, [messagesList, messages, setMessages]);
 
   // Socket handlers

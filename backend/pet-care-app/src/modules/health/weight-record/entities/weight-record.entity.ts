@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  CreateDateColumn,
 } from 'typeorm';
 import { Pet } from '../../../pets/entities/pet.entity';
 import { ProviderProfile } from '../../../provider/entities/provider.entity';
@@ -18,12 +19,15 @@ export class WeightRecord {
   @Column('float')
   weight!: number;
 
-  @Column()
+  @Column({ type: 'date' })
   recordDate!: Date;
 
   @ManyToOne(() => ProviderProfile, { nullable: true })
-  addedByProvider!: ProviderProfile;
+  addedByProvider!: ProviderProfile | null;
 
   @Column({ default: false })
   isApproved!: boolean;
+
+  @CreateDateColumn()
+  createdAt!: Date;
 }

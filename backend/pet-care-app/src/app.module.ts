@@ -7,11 +7,12 @@ import { AuthModule } from './modules/auth/auth.module';
 import { MessageModule } from './modules/message/message.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { HireRequestsModule } from './modules/hire-requests/hire-requests.module';
-import { PricingPlanModule } from './modules/pricing/pricing.module';
 import { OwnerModule } from './modules/owner/owner.module';
 import { ProviderModule } from './modules/provider/provider.module';
 import { PetsModule } from './modules/pets/pets.module';
-import { HealthModule } from './modules/health/health.module';‚
+import { HealthModule } from './modules/health/health.module';
+import { PetNotesModule } from './modules/pet-notes/pet-notes.module';
+import { ProviderAvailabilityModule } from './modules/provider-availability/provider-availability.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -46,13 +47,14 @@ import { AppService } from './app.service';
     UserModule,
     AuthModule,
     MessageModule,
-    PricingPlanModule,
     OwnerModule,
     ProviderModule,
     PetsModule,
     HealthModule,
     HireRequestsModule,
     BookingsModule,
+    PetNotesModule,
+    ProviderAvailabilityModule,
   ],
 
   controllers: [AppController],

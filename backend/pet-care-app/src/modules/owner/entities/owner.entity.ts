@@ -4,6 +4,7 @@ import {
   Column,
   OneToOne,
   OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { Pet } from '../../pets/entities/pet.entity';
@@ -18,6 +19,7 @@ export class OwnerProfile {
   @OneToOne(() => User, (user) => user.ownerProfile, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'userId' })
   user!: User;
 
   @Column()

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { FaLinkedin, FaGithub, FaTwitter } from "react-icons/fa";
+import { HeartIcon } from "@heroicons/react/24/solid";
 
 const FooterComponent = () => {
   const [email, setEmail] = useState("");
@@ -15,152 +16,177 @@ const FooterComponent = () => {
   };
 
   return (
-    <footer className="w-full bg-slate-950 text-slate-200 pt-16 pb-10 px-6 md:px-12">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-10">
-        <div className="col-span-1 md:col-span-2">
-          <h2 className="text-2xl font-bold mb-3">
-            PetConnect
-          </h2>
-          <p className="text-sm text-slate-400">
-            The easiest way to manage your pets, appointments, and health records in one place.
-          </p>
-        </div>
+    <footer className="relative w-full overflow-hidden bg-slate-950 text-slate-200">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-400/50 to-transparent" />
+      <div className="pointer-events-none absolute -right-24 top-24 h-72 w-72 rounded-full bg-teal-600/10 blur-[100px]" />
 
-        <div>
-          <h4 className="font-semibold text-lg mb-3">Product</h4>
-          <ul className="space-y-2 text-sm text-slate-300">
-            <li>
-              <Link href="/" className="hover:text-white">
-                Dashboard
-              </Link>
-            </li>
-            <li>
-              <Link href="/about" className="hover:text-white">
-                Health Tracking
-              </Link>
-            </li>
-            <li>
-              <Link href="/pricing" className="hover:text-white">
-                Bookings
-              </Link>
-            </li>
-            <li>
-              <Link href="/blog" className="hover:text-white">
-                Resources
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="font-semibold text-lg mb-3">Resources</h4>
-          <ul className="space-y-2 text-sm text-slate-300">
-            <li>
-              <Link href="/blog" className="hover:text-white">
-                Blog
-              </Link>
-            </li>
-            <li>
-              <Link href="/help" className="hover:text-white">
-                Help Center
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className="hover:text-white">
-                Contact
-              </Link>
-            </li>
-            <li>
-              <Link href="/privacy-policy" className="hover:text-white">
-                Privacy Policy
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="font-semibold text-lg mb-3">Company</h4>
-          <ul className="space-y-2 text-sm text-slate-300">
-            <li>
-              <Link href="/about" className="hover:text-white">
-                About Us
-              </Link>
-            </li>
-            <li>
-              <Link href="/careers" className="hover:text-white">
-                Careers
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className="hover:text-white">
-                Contact
-              </Link>
-            </li>
-            <li>
-              <Link href="/terms-of-service" className="hover:text-white">
-                Terms of Service
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="my-10 border-t border-slate-800" />
-
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-        <div className="w-full md:w-1/2">
-          <h4 className="text-lg font-semibold mb-2 text-slate-100">
-            Subscribe for product updates
-          </h4>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="p-2 w-full sm:w-auto rounded border border-slate-700 bg-slate-900 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-600"
-            />
-            <button
-              onClick={handleSubscribe}
-              className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded font-medium transition"
+      <div className="relative mx-auto max-w-7xl px-6 pb-12 pt-16 md:px-12">
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-5 md:gap-10">
+          <div className="md:col-span-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-xl font-bold tracking-tight text-white no-underline"
             >
-              Subscribe
-            </button>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500 text-white shadow-lg shadow-teal-500/25">
+                <HeartIcon className="h-5 w-5" />
+              </span>
+              PetConnect
+            </Link>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-400">
+              The easiest way to manage pets, appointments, and health records
+              in one modern workspace—for families and the pros who support
+              them.
+            </p>
+            <div className="mt-6 flex gap-4 text-xl text-slate-400">
+              <a
+                href="https://linkedin.com/in/abrhakahsay"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg p-2 transition hover:bg-white/5 hover:text-white"
+                aria-label="LinkedIn"
+              >
+                <FaLinkedin />
+              </a>
+              <a
+                href="https://github.com/abrhakahsay"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg p-2 transition hover:bg-white/5 hover:text-white"
+                aria-label="GitHub"
+              >
+                <FaGithub />
+              </a>
+              <a
+                href="https://twitter.com/abrhakahsay"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg p-2 transition hover:bg-white/5 hover:text-white"
+                aria-label="Twitter"
+              >
+                <FaTwitter />
+              </a>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Product
+            </h4>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <Link
+                  href="/"
+                  className="text-slate-300 transition hover:text-white"
+                >
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/login?role=OWNER"
+                  className="text-slate-300 transition hover:text-white"
+                >
+                  Owner login
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/login?role=PROVIDER"
+                  className="text-slate-300 transition hover:text-white"
+                >
+                  Provider login
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/register"
+                  className="text-slate-300 transition hover:text-white"
+                >
+                  Create account
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Resources
+            </h4>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <Link
+                  href="/blog"
+                  className="text-slate-300 transition hover:text-white"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <span className="cursor-not-allowed text-slate-500">
+                  Help Center
+                </span>
+              </li>
+              <li>
+                <Link
+                  href="/about"
+                  className="text-slate-300 transition hover:text-white"
+                >
+                  About
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Legal
+            </h4>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <span className="cursor-not-allowed text-slate-500">
+                  Privacy Policy
+                </span>
+              </li>
+              <li>
+                <span className="cursor-not-allowed text-slate-500">
+                  Terms of Service
+                </span>
+              </li>
+            </ul>
           </div>
         </div>
 
-        <div className="flex gap-6 text-xl text-slate-300">
-          <a
-            href="https://linkedin.com/in/abrhakahsay"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white"
-          >
-            <FaLinkedin />
-          </a>
-          <a
-            href="https://github.com/abrhakahsay"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white"
-          >
-            <FaGithub />
-          </a>
-          <a
-            href="https://twitter.com/abrhakahsay"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white"
-          >
-            <FaTwitter />
-          </a>
-        </div>
-      </div>
+        <div className="my-12 h-px bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
 
-      <div className="mt-10 text-center text-slate-500 text-sm">
-        <p>
-          &copy; {new Date().getFullYear()} PetConnect. All rights reserved.
-        </p>
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
+          <div className="w-full max-w-md">
+            <h4 className="text-base font-semibold text-white">
+              Product updates
+            </h4>
+            <p className="mt-1 text-sm text-slate-500">
+              Occasional notes on new features—no spam.
+            </p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                className="min-h-11 flex-1 rounded-xl border border-slate-700 bg-slate-900 px-4 text-slate-100 placeholder:text-slate-500 outline-none ring-teal-500/0 transition focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/30"
+              />
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                className="min-h-11 shrink-0 rounded-xl bg-teal-500 px-6 font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:bg-teal-400"
+              >
+                Subscribe
+              </button>
+            </div>
+          </div>
+          <p className="text-center text-sm text-slate-600 lg:text-right">
+            © {new Date().getFullYear()} PetConnect. All rights reserved.
+          </p>
+        </div>
       </div>
     </footer>
   );

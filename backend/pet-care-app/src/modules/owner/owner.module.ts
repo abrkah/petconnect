@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { OwnerService } from './owner.service';
 import { OwnerController } from './owner.controller';
 import { OwnerProfile } from './entities/owner.entity';
+import { User } from '../user/entities/user.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([OwnerProfile])],
+  imports: [TypeOrmModule.forFeature([OwnerProfile, User])],
   controllers: [OwnerController],
   providers: [OwnerService],
   exports: [OwnerService],

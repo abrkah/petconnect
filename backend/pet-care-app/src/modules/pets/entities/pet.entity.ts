@@ -5,10 +5,12 @@ import {
   ManyToOne,
   OneToMany,
 } from 'typeorm';
-import { OwnerProfile } from '../../owner/entities/owner.entity'; 
+import { OwnerProfile } from '../../owner/entities/owner.entity';
 import { VaccinationRecord } from '../../health/vaccination-record/entities/vaccination-record.entity';
 import { WeightRecord } from '../../health/weight-record/entities/weight-record.entity';
 import { Booking } from '../../bookings/entities/booking.entity';
+import { ProviderPetAssignment } from '../../provider-pet-assignment/entities/provider-pet-assignment.entity';
+import { PetNote } from '../../pet-notes/entities/pet-note.entity';
 
 @Entity()
 export class Pet {
@@ -27,7 +29,7 @@ export class Pet {
   @Column()
   age!: number;
 
-  @Column({ nullable: true })
+  @Column('double precision', { nullable: true })
   weight!: number;
 
   @Column({ nullable: true })
@@ -44,4 +46,10 @@ export class Pet {
 
   @OneToMany(() => Booking, (b) => b.pet)
   bookings!: Booking[];
+
+  @OneToMany(() => ProviderPetAssignment, (a) => a.pet)
+  assignments!: ProviderPetAssignment[];
+
+  @OneToMany(() => PetNote, (n) => n.pet)
+  notes!: PetNote[];
 }

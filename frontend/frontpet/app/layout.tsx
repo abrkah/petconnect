@@ -5,7 +5,11 @@ import "./globals.css";
 import { ThemeProvider } from "./provider";
 import ReactQueryProvider from "@/components/providers/reactQueryProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-petconnect",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "PetConnect | All Your Pet Care in One Place",
@@ -18,15 +22,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
       <head>
         <link rel="icon" href="/jsm-logo.png" sizes="any" />
       </head>
-      <body>
+      <body className="font-sans antialiased">
         <ReactQueryProvider>
           <ThemeProvider
             attribute="class"
-            defaultTheme="dark"
+            defaultTheme="light"
             enableSystem
             disableTransitionOnChange
           >

@@ -33,6 +33,10 @@ export class User {
   @Column({ default: true })
   isFirstLogin!: boolean;
 
+  /** Updated when the user disconnects from realtime chat (socket). */
+  @Column({ type: 'timestamptz', nullable: true })
+  lastSeenAt!: Date | null;
+
   @OneToOne(() => OwnerProfile, (owner) => owner.user)
   ownerProfile!: OwnerProfile;
 

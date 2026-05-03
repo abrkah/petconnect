@@ -15,6 +15,9 @@ interface StoreState {
   loggedUserRole: string;
   setLoggedUserRole: (loggedUserRole: string) => void;
 
+  isFirstLogin: boolean;
+  setIsFirstLogin: (v: boolean) => void;
+
   loading: boolean;
   setLoading: (loading: boolean) => void;
 
@@ -58,6 +61,9 @@ export const useAuthenticationStore = create<StoreState>()(
           set({ loggedUserRole });
         },
 
+        isFirstLogin: false,
+        setIsFirstLogin: (isFirstLogin: boolean) => set({ isFirstLogin }),
+
         loading: false,
         setLoading: (loading: boolean) => set({ loading }),
 
@@ -74,9 +80,9 @@ export const useAuthenticationStore = create<StoreState>()(
         },
 
         logout: () => {
-          deleteCookie("token");
-          deleteCookie("loggedUserRole");
-          deleteCookie("activeCalendar");
+          removeCookie("token");
+          removeCookie("loggedUserRole");
+          removeCookie("activeCalendar");
           localStorage.removeItem("login"); // if you keep this flag
           set({
             token: "",
@@ -84,6 +90,7 @@ export const useAuthenticationStore = create<StoreState>()(
             userData: {},
             loggedUserRole: "",
             activeCalendar: "",
+            isFirstLogin: false,
           });
         },
       }),
@@ -95,6 +102,7 @@ export const useAuthenticationStore = create<StoreState>()(
           userId: state.userId,
           userData: state.userData,
           activeCalendar: state.activeCalendar,
+          isFirstLogin: state.isFirstLogin,
         }),
       }
     )

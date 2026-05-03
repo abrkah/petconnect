@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  CreateDateColumn,
 } from 'typeorm';
 import { Pet } from '../../../pets/entities/pet.entity';
 import { ProviderProfile } from '../../../provider/entities/provider.entity';
@@ -18,15 +19,18 @@ export class VaccinationRecord {
   @Column()
   vaccineName!: string;
 
-  @Column()
+  @Column({ type: 'date' })
   vaccinationDate!: Date;
 
-  @Column({ nullable: true })
-  nextDueDate!: Date;
+  @Column({ type: 'date', nullable: true })
+  nextDueDate!: Date | null;
 
   @ManyToOne(() => ProviderProfile, { nullable: true })
-  addedByProvider!: ProviderProfile;
+  addedByProvider!: ProviderProfile | null;
 
   @Column({ default: false })
   isApproved!: boolean;
+
+  @CreateDateColumn()
+  createdAt!: Date;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import ShiftCard from "./ShiftCard";
+import ShiftCard from "../schedule/ShiftCard";
 
 // ✅ SAMPLE DATA
 const sampleShifts = [

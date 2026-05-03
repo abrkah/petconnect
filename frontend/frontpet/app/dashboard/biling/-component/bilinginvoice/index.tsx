@@ -49,9 +49,12 @@ const BillingInvoice: React.FC<BillingInvoiceProps> = ({
                   className="p-3 rounded-md text-white"
                   style={{ backgroundColor: item.color }}
                 >
-                  {React.cloneElement(item.icon, {
-                    style: { fontSize: 20, color: "#fff" },
-                  })}
+                  {React.cloneElement(
+                    item.icon as React.ReactElement<{ style?: React.CSSProperties }>,
+                    {
+                      style: { fontSize: 20, color: "#fff" },
+                    },
+                  )}
                 </div>
                 <div>
                   <div className="text-gray-600 text-sm">{item.overview}</div>

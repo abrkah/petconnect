@@ -1,31 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
-import AdminAppointmentPage from "@/components/adminAppointment"; 
-import ConsultancyAppointmentPage from "@/components/traineeAppointment"; 
-
-
-
-const AppointmentPageRouter = () => {
-
-  const userRole = localStorage.getItem("Role");
-
-  if (userRole === "Admin") {
-    return <AdminAppointmentPage />;
-  }
-
-  if (userRole === "Trainee") {
-    return <ConsultancyAppointmentPage />;
-  }
-
-  // Optional fallback if user is neither admin nor consultant
+export default function LegacyConsultancyPage() {
   return (
-    <div className="text-center p-6">
-      <p className="text-gray-700">
-        You do not have permission to view this page.
-      </p>
+    <div className="p-8 text-center text-slate-600">
+      This legacy route is not used in PetConnect. Use{" "}
+      <a href="/owner" className="text-teal-600">
+        /owner
+      </a>{" "}
+      or{" "}
+      <a href="/provider" className="text-teal-600">
+        /provider
+      </a>
+      .
     </div>
   );
-};
-
-export default AppointmentPageRouter;
+}

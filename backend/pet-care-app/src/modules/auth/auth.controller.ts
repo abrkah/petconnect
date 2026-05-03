@@ -77,6 +77,7 @@ export class AuthController {
       id: user.id,
       token,
       role: user.role,
+      isFirstLogin: user.isFirstLogin,
     };
   }
 

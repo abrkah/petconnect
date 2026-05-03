@@ -36,6 +36,9 @@ export class HireRequest {
   @Column({ nullable: true })
   message!: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  petIds!: string[] | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

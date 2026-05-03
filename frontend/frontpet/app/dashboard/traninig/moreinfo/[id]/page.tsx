@@ -1,12 +1,5 @@
-// "use client"
-// import { useParams } from "next/navigation";
-// import CourseDetailModal from "./coursemodal"; 
+import { redirect } from "next/navigation";
 
-// export default function CourseModalPage() {
-//   const params = useParams();
-//   const { id } = params;
-
-//   if (!id) return <p>No course selected</p>;
-
-//   return <CourseDetailModal/>;
-// }
+export default function LegacyTrainingMoreInfoPage() {
+  redirect("/");
+}

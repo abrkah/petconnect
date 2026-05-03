@@ -1,26 +1,130 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Booking, BookingStatus } from './entities/booking.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
+import { OwnerProfile } from '../owner/entities/owner.entity';
+import { ProviderProfile } from '../provider/entities/provider.entity';
+import { Pet } from '../pets/entities/pet.entity';
+import { UserRole } from '../user/entities/user.entity';
 
 @Injectable()
 export class BookingsService {
-  create(createBookingDto: CreateBookingDto) {
-    return 'This action adds a new booking';
+  constructor(
+    @InjectRepository(Booking)
+    private readonly bookingRepo: Repository<Booking>,
+    @InjectRepository(OwnerProfile)
+    private readonly ownerRepo: Repository<OwnerProfile>,
+    @InjectRepository(ProviderProfile)
+    private readonly providerRepo: Repository<ProviderProfile>,
+    @InjectRepository(Pet)
+    private readonly petRepo: Repository<Pet>,
+  ) {}
+
+  private async ownerEntity(userId: string) {
+    const o = await this.ownerRepo.findOne({ where: { user: { id: userId } } });
+    if (!o) throw new BadRequestException('Owner profile required');
+    return o;
   }
 
-  findAll() {
-    return `This action returns all bookings`;
+  private async providerEntity(userId: string) {
+    const p = await this.providerRepo.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!p) throw new BadRequestException('Provider profile required');
+    return p;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} booking`;
+  async createForOwner(userId: string, dto: CreateBookingDto) {
+    const owner = await this.ownerEntity(userId);
+    const pet = await this.petRepo.findOne({
+      where: { id: dto.petId, owner: { id: owner.id } },
+    });
+    if (!pet) throw new NotFoundException('Pet not found');
+
+    const provider = await this.providerRepo.findOne({
+      where: { id: dto.providerId },
+    });
+    if (!provider) throw new NotFoundException('Provider not found');
+
+    const booking = this.bookingRepo.create({
+      owner,
+      provider,
+      pet,
+      serviceType: dto.serviceType,
+      startDate: dto.startDate,
+      endDate: dto.endDate,
+      timeSlot: dto.timeSlot ?? null,
+      status: BookingStatus.PENDING,
+    });
+    return this.bookingRepo.save(booking);
   }
 
-  update(id: number, updateBookingDto: UpdateBookingDto) {
-    return `This action updates a #${id} booking`;
+  async listForUser(userId: string, role: UserRole) {
+    if (role === UserRole.OWNER) {
+      const owner = await this.ownerEntity(userId);
+      return this.bookingRepo.find({
+        where: { owner: { id: owner.id } },
+        relations: ['provider', 'pet', 'owner'],
+        order: { startDate: 'DESC' },
+      });
+    }
+    const provider = await this.providerEntity(userId);
+    return this.bookingRepo.find({
+      where: { provider: { id: provider.id } },
+      relations: ['owner', 'pet', 'provider'],
+      order: { startDate: 'DESC' },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} booking`;
+  async updateBooking(
+    userId: string,
+    role: UserRole,
+    id: string,
+    dto: UpdateBookingDto,
+  ) {
+    const booking = await this.bookingRepo.findOne({
+      where: { id },
+      relations: ['owner', 'owner.user', 'provider', 'provider.user'],
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    if (role === UserRole.OWNER) {
+      if (booking.owner.user.id !== userId) {
+        throw new ForbiddenException();
+      }
+      if (dto.status && dto.status !== BookingStatus.PENDING) {
+        throw new ForbiddenException('Owners cannot set this status');
+      }
+    } else if (role === UserRole.PROVIDER) {
+      if (booking.provider.user.id !== userId) {
+        throw new ForbiddenException();
+      }
+    }
+
+    Object.assign(booking, dto);
+    return this.bookingRepo.save(booking);
+  }
+
+  async remove(userId: string, role: UserRole, id: string) {
+    const booking = await this.bookingRepo.findOne({
+      where: { id },
+      relations: ['owner', 'owner.user', 'provider', 'provider.user'],
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (role === UserRole.OWNER && booking.owner.user.id !== userId) {
+      throw new ForbiddenException();
+    }
+    if (role === UserRole.PROVIDER && booking.provider.user.id !== userId) {
+      throw new ForbiddenException();
+    }
+    await this.bookingRepo.remove(booking);
+    return { deleted: true };
   }
 }

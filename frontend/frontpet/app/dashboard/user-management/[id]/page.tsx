@@ -8,7 +8,7 @@ import { useGetUserCourses } from "@/app/utils/store/server/training/query";
 import { Spin } from "antd";
 
 interface UserDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 const UserDetailPage: React.FC<UserDetailPageProps> = (props) => {

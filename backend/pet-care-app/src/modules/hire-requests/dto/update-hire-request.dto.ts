@@ -1,4 +1,7 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateHireRequestDto } from './create-hire-request.dto';
+import { IsEnum } from 'class-validator';
+import { HireStatus } from '../entities/hire-request.entity';
 
-export class UpdateHireRequestDto extends PartialType(CreateHireRequestDto) {}
+export class UpdateHireRequestDto {
+  @IsEnum(HireStatus)
+  status!: HireStatus;
+}

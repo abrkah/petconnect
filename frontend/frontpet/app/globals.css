@@ -1,26 +1,105 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --app-canvas: #f1f5f9;
+  --brand-teal: #0d9488;
+  --brand-teal-dark: #0f766e;
+  --surface-glass: rgba(255, 255, 255, 0.72);
+  --ring-brand: rgba(13, 148, 136, 0.35);
+}
+
+.dark {
+  --background: #020617;
+  --foreground: #f1f5f9;
+  --app-canvas: #0f172a;
+  --surface-glass: rgba(15, 23, 42, 0.75);
+  --ring-brand: rgba(45, 212, 191, 0.35);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-petconnect), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--brand-teal) 28%, transparent);
+  color: var(--foreground);
+}
+
+/* Subtle mesh for marketing sections (optional utility) */
+.pc-mesh-bg {
+  background-color: var(--app-canvas);
+  background-image:
+    radial-gradient(
+      at 40% 20%,
+      color-mix(in srgb, var(--brand-teal) 18%, transparent) 0px,
+      transparent 50%
+    ),
+    radial-gradient(
+      at 80% 0%,
+      rgba(14, 165, 233, 0.12) 0px,
+      transparent 45%
+    ),
+    radial-gradient(
+      at 0% 100%,
+      rgba(99, 102, 241, 0.08) 0px,
+      transparent 45%
+    );
+}
+
+/* Richer backdrop for marketing + auth */
+.pc-landing-canvas {
+  background-color: #f0f4f8;
+  background-image:
+    radial-gradient(
+      ellipse 120% 80% at 50% -30%,
+      color-mix(in srgb, var(--brand-teal) 22%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 100% 60%,
+      rgba(56, 189, 248, 0.14) 0px,
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 0% 80%,
+      rgba(167, 139, 250, 0.1) 0px,
+      transparent 40%
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cg fill='%2394a3b8' fill-opacity='0.06'%3E%3Cpath d='M24 0v48M0 24h48'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: auto, auto, auto, 48px 48px;
+}
+
+.dark .pc-landing-canvas {
+  background-color: #0f172a;
+  background-image:
+    radial-gradient(
+      ellipse 100% 70% at 50% -20%,
+      rgba(45, 212, 191, 0.12),
+      transparent 50%
+    ),
+    radial-gradient(circle at 90% 40%, rgba(56, 189, 248, 0.08), transparent 45%),
+    radial-gradient(circle at 10% 70%, rgba(99, 102, 241, 0.06), transparent 40%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cg fill='%23fff' fill-opacity='0.03'%3E%3Cpath d='M24 0v48M0 24h48'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: auto, auto, auto, 48px 48px;
 }

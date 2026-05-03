@@ -9,7 +9,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { PlanService } from './pricing.service.spec'; 
+import { PlanService } from './pricing.service'; 
 import { CreatePlanDto } from './dto/create-pricing-plan.dto'; 
 import { UpdatePlanDto } from './dto/update-pricing-plan.dto'; 
 
