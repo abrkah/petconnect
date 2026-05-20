@@ -1,554 +1,268 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  Button,
-  Card,
-  Typography,
-  Table,
-  Spin,
-  Empty,
-  Space,
-  message,
-  Tag,
-  Skeleton,
-} from "antd";
+import { useState } from "react";
 import Link from "next/link";
-import dayjs from "dayjs";
 import {
-  ArrowRightOutlined,
+  BellOutlined,
+  MessageOutlined,
+  UserOutlined,
   PlusOutlined,
   CalendarOutlined,
-  MessageOutlined,
+  MedicineBoxOutlined,
+  LineChartOutlined,
+  FileTextOutlined,
+  TeamOutlined,
+  LogoutOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  CloseCircleOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import {
-  HeartIcon,
-  CalendarDaysIcon,
-  BeakerIcon,
-  SparklesIcon,
-} from "@heroicons/react/24/outline";
-import { api } from "@/lib/petconnect-api";
-import { WeightLineChart } from "@/components/petconnect/WeightLineChart";
-import { serviceTypeIcon } from "@/lib/service-icons";
-import type { ColumnsType } from "antd/es/table";
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  Tag,
+  Tooltip,
+  Progress,
+} from "antd";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as ReTooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from "recharts";
 
-const { Paragraph } = Typography;
+const weightData = [
+  { date: "Jan", weight: 12.2 },
+  { date: "Feb", weight: 12.5 },
+  { date: "Mar", weight: 12.1 },
+  { date: "Apr", weight: 13.0 },
+  { date: "May", weight: 12.8 },
+  { date: "Jun", weight: 13.2 },
+  { date: "Jul", weight: 13.5 },
+];
 
-type Pet = { id: string; name: string; breed: string; age: number };
-type WRec = { id: string; weight: number; recordDate: string };
-type Vac = {
-  id: string;
-  vaccineName: string;
-  vaccinationDate: string;
-  nextDueDate?: string | null;
-};
-type Booking = {
-  id: string;
-  status: string;
-  startDate: string;
-  endDate: string;
-  timeSlot?: string | null;
-  serviceType: string;
-  provider: { fullName: string };
-  pet: { id: string; name: string };
-};
+const vaccinations = [
+  { name: "Rabies", date: "2024-03-15", due: "2025-03-15", status: "up-to-date" },
+  { name: "Distemper", date: "2024-01-10", due: "2025-01-10", status: "up-to-date" },
+  { name: "Parvovirus", date: "2023-11-20", due: "2024-11-20", status: "due-soon" },
+  { name: "Bordetella", date: "2024-05-01", due: "2025-05-01", status: "up-to-date" },
+];
 
-type OwnerProfile = { fullName?: string | null };
+const bookings = [
+  { provider: "Jane Cooper", pet: "Buddy", service: "Dog Walking", date: "2024-07-28", time: "10:00 AM", status: "CONFIRMED" },
+  { provider: "Robert Fox", pet: "Luna", service: "General Service", date: "2024-07-30", time: "2:00 PM", status: "PENDING" },
+  { provider: "Cameron W.", pet: "Buddy", service: "Vaccination", date: "2024-08-05", time: "11:00 AM", status: "CONFIRMED" },
+];
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
-}
+const pets = [
+  { name: "Buddy", breed: "Golden Retriever", age: 3, weight: 13.5, photo: null },
+  { name: "Luna", breed: "Siamese Cat", age: 2, weight: 4.2, photo: null },
+];
 
-function statusTag(status: string) {
-  const s = status?.toUpperCase() ?? "";
-  if (s === "CONFIRMED")
-    return <Tag color="success">Confirmed</Tag>;
-  if (s === "PENDING")
-    return <Tag color="warning">Pending</Tag>;
-  if (s === "COMPLETED")
-    return <Tag color="default">Completed</Tag>;
-  if (s === "CANCELLED") return <Tag color="error">Cancelled</Tag>;
-  return <Tag>{status}</Tag>;
-}
+const navItems = [
+  { icon: <MessageOutlined />, label: "Messages", href: "/owner/messages", badge: 3 },
+  { icon: <TeamOutlined />, label: "Providers", href: "/owner/providers" },
+  { icon: <UserOutlined />, label: "Profile", href: "/owner/profile" },
+];
 
-export default function OwnerHomePage() {
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [weights, setWeights] = useState<WRec[]>([]);
-  const [vacs, setVacs] = useState<Vac[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [healthLoading, setHealthLoading] = useState(false);
-  const [ownerName, setOwnerName] = useState<string | null>(null);
-  const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
+const sidebarItems = [
+  { icon: <LineChartOutlined />, label: "Weight", key: "weight" },
+  { icon: <MedicineBoxOutlined />, label: "Vaccination", key: "vaccination" },
+  { icon: <CalendarOutlined />, label: "Bookings", key: "bookings" },
+  { icon: <FileTextOutlined />, label: "Notes", key: "notes" },
+];
 
-  const reloadBookings = async () => {
-    try {
-      const { data: b } = await api.get<Booking[]>("/bookings/mine");
-      setBookings(b);
-    } catch {
-      /* ignore */
-    }
+export default function OwnerDashboard() {
+  const [activeSection, setActiveSection] = useState("weight");
+  const [activePet, setActivePet] = useState(0);
+
+  const statusColor: Record<string, string> = {
+    CONFIRMED: "green",
+    PENDING: "orange",
+    COMPLETED: "blue",
   };
 
-  useEffect(() => {
-    let ok = true;
-    (async () => {
-      try {
-        const [petRes, profileRes, bookingRes] = await Promise.all([
-          api.get<Pet[]>("/pets/mine"),
-          api
-            .get<OwnerProfile>("/owner/profile")
-            .catch(() => ({ data: {} as OwnerProfile })),
-          api.get<Booking[]>("/bookings/mine"),
-        ]);
-        if (!ok) return;
-        setPets(petRes.data);
-        setOwnerName(profileRes.data.fullName?.trim() || null);
-        setBookings(bookingRes.data);
-
-        const firstId = petRes.data[0]?.id ?? null;
-        setSelectedPetId(firstId);
-      } catch {
-        if (ok) setPets([]);
-      } finally {
-        if (ok) setLoading(false);
-      }
-    })();
-    return () => {
-      ok = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!selectedPetId) {
-      setWeights([]);
-      setVacs([]);
-      return;
-    }
-    let ok = true;
-    setHealthLoading(true);
-    (async () => {
-      try {
-        const [wRes, vRes] = await Promise.all([
-          api.get<WRec[]>(`/weight-record/pet/${selectedPetId}`).catch(() => ({ data: [] })),
-          api
-            .get<Vac[]>(`/vaccination-record/pet/${selectedPetId}`)
-            .catch(() => ({ data: [] })),
-        ]);
-        if (!ok) return;
-        setWeights(wRes.data);
-        setVacs(vRes.data.slice(0, 8));
-      } finally {
-        if (ok) setHealthLoading(false);
-      }
-    })();
-    return () => {
-      ok = false;
-    };
-  }, [selectedPetId]);
-
-  const focusPet = pets.find((p) => p.id === selectedPetId) ?? pets[0];
-
-  const wLabels = weights.map((w) => dayjs(w.recordDate).format("MMM 'YY"));
-  const wVals = weights.map((w) => w.weight);
-
-  const upcomingBookingCount = useMemo(
-    () =>
-      bookings.filter((b) =>
-        ["PENDING", "CONFIRMED"].includes(String(b.status).toUpperCase()),
-      ).length,
-    [bookings],
-  );
-
-  const vaccinesDueSoon = useMemo(() => {
-    const now = dayjs();
-    return vacs.filter((v) => {
-      if (!v.nextDueDate) return false;
-      const due = dayjs(v.nextDueDate);
-      return due.diff(now, "day") >= 0 && due.diff(now, "day") <= 45;
-    }).length;
-  }, [vacs]);
-
-  const displayedBookings = useMemo(() => bookings.slice(0, 6), [bookings]);
-
-  const bookingCols: ColumnsType<Booking> = [
-    {
-      title: "Provider",
-      render: (_, r) => (
-        <span className="font-medium text-slate-800">{r.provider?.fullName}</span>
-      ),
-    },
-    {
-      title: "Pet",
-      render: (_, r) => r.pet?.name,
-    },
-    {
-      title: "Service",
-      align: "center",
-      render: (_, r) => serviceTypeIcon(r.serviceType),
-    },
-    {
-      title: "Status",
-      render: (_, r) => statusTag(r.status),
-    },
-    {
-      title: "Date",
-      render: (_, r) => dayjs(r.startDate).format("D MMM YYYY"),
-    },
-    {
-      title: "Time",
-      render: (_, r) => r.timeSlot?.trim() || dayjs(r.startDate).format("HH:mm"),
-    },
-    {
-      title: "",
-      width: 100,
-      render: (_, r) => (
-        <Button
-          danger
-          size="small"
-          className="!rounded-lg"
-          onClick={async () => {
-            try {
-              await api.delete(`/bookings/${r.id}`);
-              message.success("Booking cancelled");
-              await reloadBookings();
-            } catch {
-              message.error("Could not cancel");
-            }
-          }}
-        >
-          Cancel
-        </Button>
-      ),
-    },
-  ];
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton.Node active className="!h-40 !w-full !rounded-3xl" />
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Skeleton active paragraph={{ rows: 2 }} />
-          <Skeleton active paragraph={{ rows: 2 }} />
-          <Skeleton active paragraph={{ rows: 2 }} />
-        </div>
-        <Skeleton active paragraph={{ rows: 6 }} />
-      </div>
-    );
-  }
-
-  const surfaceCard =
-    "overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_12px_40px_-16px_rgba(15,23,42,0.12)]";
-
   return (
-    <div className="space-y-8 pb-4">
-      {/* Hero */}
-      <section
-        className={`relative overflow-hidden rounded-3xl border border-teal-200/40 bg-gradient-to-br from-teal-600 via-teal-700 to-slate-900 px-6 py-8 text-white shadow-xl shadow-teal-900/25 sm:px-8 sm:py-10`}
-      >
-        <div
-          className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/25 blur-3xl"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-teal-400/20 blur-3xl"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.12]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-4h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h4v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-          aria-hidden
-        />
-
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-xl space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-teal-100 ring-1 ring-white/20 backdrop-blur-sm">
-              <SparklesIcon className="h-4 w-4" aria-hidden />
-              Your overview
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+        {/* MAIN */}
+        <main className="flex-1 space-y-6">
+          {/* Welcome + Pet Selector */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-3xl p-6 pt-8 pb-12 text-white flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold">Good morning, Sarah!<br/> 👋</h1>
+              <p className="text-blue-100 text-md mt-1">Here's an overview of your pets' health and activities.</p>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
-              {greeting()}
-              {ownerName ? `, ${ownerName.split(" ")[0]}` : ""}
-            </h2>
-            <p className="text-base leading-relaxed text-teal-50/95 sm:text-lg">
-              Track weight, vaccinations, and bookings in one calm workspace —
-              tailored for busy pet parents.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Link href="/owner/pets">
-              <Button
-                size="large"
-                icon={<PlusOutlined />}
-                className="!h-12 !rounded-2xl !border-0 !bg-white !px-5 !font-semibold !text-teal-800 shadow-lg hover:!bg-teal-50"
-              >
-                My pets
-              </Button>
-            </Link>
-            <Link href="/owner/providers">
-              <Button
-                size="large"
-                ghost
-                icon={<CalendarOutlined />}
-                className="!h-12 !rounded-2xl !border-white/40 !font-semibold !text-white hover:!border-white hover:!bg-white/10"
-              >
-                Book care
-              </Button>
-            </Link>
-            <Link href="/owner/messages">
-              <Button
-                size="large"
-                ghost
-                icon={<MessageOutlined />}
-                className="!h-12 !rounded-2xl !border-white/40 !font-semibold !text-white hover:!border-white hover:!bg-white/10"
-              >
-                Messages
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Quick stats */}
-      <section className="grid gap-4 sm:grid-cols-3">
-        <div
-          className={`${surfaceCard} group flex gap-4 p-5 transition hover:border-teal-200/80 hover:shadow-[0_20px_50px_-24px_rgba(13,148,136,0.35)]`}
-        >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-md shadow-teal-600/30">
-            <HeartIcon className="h-6 w-6" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Pets
-            </p>
-            <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">
-              {pets.length}
-            </p>
-            <Link
-              href="/owner/pets"
-              className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-teal-700 hover:text-teal-900"
-            >
-              Manage <ArrowRightOutlined className="text-xs" />
-            </Link>
-          </div>
-        </div>
-
-        <div
-          className={`${surfaceCard} group flex gap-4 p-5 transition hover:border-teal-200/80 hover:shadow-[0_20px_50px_-24px_rgba(13,148,136,0.35)]`}
-        >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md">
-            <CalendarDaysIcon className="h-6 w-6" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Active bookings
-            </p>
-            <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">
-              {upcomingBookingCount}
-            </p>
-            <Link
-              href="/owner/bookings"
-              className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-teal-700 hover:text-teal-900"
-            >
-              View schedule <ArrowRightOutlined className="text-xs" />
-            </Link>
-          </div>
-        </div>
-
-        <div
-          className={`${surfaceCard} group flex gap-4 p-5 transition hover:border-teal-200/80 hover:shadow-[0_20px_50px_-24px_rgba(13,148,136,0.35)]`}
-        >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-md shadow-violet-600/25">
-            <BeakerIcon className="h-6 w-6" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Vaccines due (45d)
-            </p>
-            <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">
-              {!focusPet ? "—" : vaccinesDueSoon}
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              {focusPet ? `For ${focusPet.name}` : "Add a pet to track"}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Pet focus */}
-      {pets.length > 1 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-sm font-medium text-slate-600">Focus:</span>
-          {pets.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setSelectedPetId(p.id)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                selectedPetId === p.id
-                  ? "bg-teal-600 text-white shadow-md shadow-teal-600/25"
-                  : "border border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:bg-teal-50/80"
-              }`}
-            >
-              {p.name}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card
-          bordered={false}
-          className={`${surfaceCard} [&_.ant-card-head]:!border-slate-100`}
-          title={
-            <span className="text-base font-semibold text-slate-900">
-              Weight trend
-              {focusPet ? (
-                <span className="ml-2 font-normal text-slate-500">· {focusPet.name}</span>
-              ) : null}
-            </span>
-          }
-          extra={
-            <Link
-              href={focusPet ? `/owner/pets/${focusPet.id}` : "/owner/pets"}
-              className="text-sm font-semibold text-teal-700 hover:text-teal-900"
-            >
-              Pet hub <ArrowRightOutlined className="text-xs" />
-            </Link>
-          }
-        >
-          {healthLoading ? (
-            <div className="flex min-h-[220px] items-center justify-center py-8">
-              <Spin />
-            </div>
-          ) : !focusPet ? (
-            <Empty description="Add a pet to track weight" />
-          ) : weights.length === 0 ? (
-            <Empty description="No weight entries yet — add them from the pet hub." />
-          ) : (
-            <div className="max-w-xl pt-1">
-              <WeightLineChart labels={wLabels} values={wVals} />
-            </div>
-          )}
-        </Card>
-
-        <Card
-          bordered={false}
-          className={`${surfaceCard} [&_.ant-card-head]:!border-slate-100`}
-          title={
-            <span className="text-base font-semibold text-slate-900">
-              Vaccinations
-            </span>
-          }
-          extra={
-            <Link
-              href={
-                focusPet ? `/owner/pets/${focusPet.id}?tab=vaccination` : "/owner/pets"
-              }
-              className="text-sm font-semibold text-teal-700 hover:text-teal-900"
-            >
-              Manage <ArrowRightOutlined className="text-xs" />
-            </Link>
-          }
-        >
-          {healthLoading ? (
-            <div className="flex min-h-[220px] items-center justify-center py-8">
-              <Spin />
-            </div>
-          ) : !focusPet ? (
-            <Empty description="Add a pet to list vaccines" />
-          ) : vacs.length === 0 ? (
-            <Empty description="No vaccination records yet." />
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {vacs.map((v) => (
-                <li
-                  key={v.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-3.5 first:pt-1"
+            <div className="flex gap-3">
+              {pets.map((pet, i) => (
+                <button
+                  key={pet.name}
+                  onClick={() => setActivePet(i)}
+                  className={`px-4 py-4 rounded-xl text-sm font-semibold transition-all ${
+                    activePet === i
+                      ? "bg-white text-blue-600 shadow-md"
+                      : "bg-blue-700/50 text-white hover:bg-blue-500"
+                  }`}
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-100">
-                      <BeakerIcon className="h-4 w-4" aria-hidden />
-                    </span>
-                    <span className="font-semibold text-slate-900">{v.vaccineName}</span>
-                  </div>
-                  <span className="tabular-nums text-sm text-slate-500">
-                    {dayjs(v.vaccinationDate).format("D MMM YYYY")}
-                    {v.nextDueDate ? (
-                      <span className="ml-2 rounded-lg bg-slate-100 px-2 py-0.5 text-slate-700">
-                        Next {dayjs(v.nextDueDate).format("D MMM")}
-                      </span>
-                    ) : null}
-                  </span>
-                </li>
+                  🐾 {pet.name}
+                </button>
               ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-
-      <Card
-        bordered={false}
-        className={`${surfaceCard} [&_.ant-card-head]:!border-slate-100`}
-        title={
-          <span className="text-base font-semibold text-slate-900">Bookings</span>
-        }
-        extra={
-          <Space wrap>
-            <Link href="/owner/providers">
-              <Button
-                type="primary"
-                size="small"
-                icon={<PlusOutlined />}
-                className="!rounded-xl !font-semibold"
-              >
-                New booking
-              </Button>
-            </Link>
-            <Link href="/owner/bookings">
-              <Button type="link" className="!font-semibold !text-teal-700">
-                View all
-              </Button>
-            </Link>
-          </Space>
-        }
-      >
-        {displayedBookings.length === 0 ? (
-          <Empty description="No bookings yet">
-            <Link href="/owner/providers">
-              <Button type="primary" icon={<PlusOutlined />} className="!rounded-xl">
-                Find a provider
-              </Button>
-            </Link>
-          </Empty>
-        ) : (
-          <div className="-mx-1 overflow-x-auto">
-            <Table
-              rowKey="id"
-              size="middle"
-              pagination={false}
-              columns={bookingCols}
-              dataSource={displayedBookings}
-              scroll={{ x: 720 }}
-              className="[&_.ant-table]:!bg-transparent [&_.ant-table-thead>tr>th]:!border-slate-100 [&_.ant-table-thead>tr>th]:!bg-slate-50/80 [&_.ant-table-thead>tr>th]:!text-xs [&_.ant-table-thead>tr>th]:!font-semibold [&_.ant-table-thead>tr>th]:!uppercase [&_.ant-table-thead>tr>th]:!tracking-wide [&_.ant-table-tbody>tr>td]:!border-slate-100 [&_.ant-table-tbody>tr:hover>td]:!bg-teal-50/40"
-            />
+              <Link href="/owner/pets">
+                <button className="px-4 py-4 rounded-xl text-sm font-semibold bg-blue-700/50 text-white hover:bg-blue-500 transition-all flex items-center gap-1">
+                  <EyeOutlined /> View All Pets
+                </button>
+              </Link>
+            </div>
           </div>
-        )}
-      </Card>
 
-      <Paragraph type="secondary" className="!mb-0 text-center text-xs sm:text-sm">
-        Tip: open{" "}
-        <Link href="/owner/pets" className="font-semibold text-teal-700">
-          My pets
-        </Link>{" "}
-        for full health history and notes.
-      </Paragraph>
-    </div>
+          {/* Stats Row */}
+          <div className="grid grid-cols-4 gap-4">
+            {[
+              { label: "Active Pets", value: "2", icon: "🐾", color: "blue" },
+              { label: "Upcoming Bookings", value: "3", icon: "📅", color: "purple" },
+              { label: "Vaccinations Due", value: "1", icon: "💉", color: "orange" },
+              { label: "Active Providers", value: "2", icon: "👤", color: "green" },
+            ].map((s) => (
+              <div key={s.label} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl bg-${s.color}-50 flex items-center justify-center text-2xl`}>
+                  {s.icon}
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+                  <p className="text-xs text-gray-500">{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Section Content */}
+          {activeSection === "weight" && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Weight Tracking — {pets[activePet].name}</h2>
+                  <p className="text-sm text-gray-500">Current: <span className="font-semibold text-blue-600">{pets[activePet].weight} kg</span></p>
+                </div>
+                <Button type="primary" icon={<PlusOutlined />} className="bg-blue-600 border-blue-600 rounded-xl">
+                  Add Record
+                </Button>
+              </div>
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={weightData}>
+                  <defs>
+                    <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} domain={["auto", "auto"]} />
+                  <ReTooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }} />
+                  <Area type="monotone" dataKey="weight" stroke="#2563eb" strokeWidth={2.5} fill="url(#wGrad)" dot={{ fill: "#2563eb", r: 4 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {activeSection === "vaccination" && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-gray-900">Vaccinations — {pets[activePet].name}</h2>
+                <Button type="primary" icon={<PlusOutlined />} className="bg-blue-600 border-blue-600 rounded-xl">
+                  Add Vaccination
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {vaccinations.map((v) => (
+                  <div key={v.name} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${v.status === "up-to-date" ? "bg-green-100" : "bg-orange-100"}`}>
+                        <MedicineBoxOutlined className={v.status === "up-to-date" ? "text-green-600" : "text-orange-500"} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">{v.name}</p>
+                        <p className="text-xs text-gray-500">Administered: {v.date}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Next Due</p>
+                        <p className="text-sm font-semibold text-gray-700">{v.due}</p>
+                      </div>
+                      <Tag color={v.status === "up-to-date" ? "green" : "orange"} className="rounded-full capitalize">
+                        {v.status === "up-to-date" ? "✓ Up to date" : "⚠ Due soon"}
+                      </Tag>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeSection === "bookings" && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-gray-900">Bookings</h2>
+                <Link href="/owner/providers">
+                  <Button type="primary" icon={<PlusOutlined />} className="bg-blue-600 border-blue-600 rounded-xl">
+                    New Booking
+                  </Button>
+                </Link>
+              </div>
+              <div className="space-y-3">
+                {bookings.map((b, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <Avatar size={40} className="bg-blue-600">{b.provider[0]}</Avatar>
+                      <div>
+                        <p className="font-semibold text-gray-900">{b.provider}</p>
+                        <p className="text-xs text-gray-500">{b.service} · 🐾 {b.pet}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-700">{b.date}</p>
+                        <p className="text-xs text-gray-500">{b.time}</p>
+                      </div>
+                      <Tag color={statusColor[b.status]} className="rounded-full">{b.status}</Tag>
+                      <Button danger size="small" icon={<CloseCircleOutlined />} className="rounded-lg">Cancel</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeSection === "notes" && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-gray-900">Notes</h2>
+                <Button type="primary" icon={<PlusOutlined />} className="bg-blue-600 border-blue-600 rounded-xl">Add Note</Button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {["Buddy prefers morning walks", "Luna is on a special diet — no dry food", "Next vet visit scheduled for August"].map((note, i) => (
+                  <div key={i} className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                    <p className="text-sm text-gray-700">{note}</p>
+                    <div className="flex gap-2 mt-3">
+                      <Button size="small" icon={<EditOutlined />} className="rounded-lg">Edit</Button>
+                      <Button size="small" danger icon={<DeleteOutlined />} className="rounded-lg">Delete</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
   );
 }
