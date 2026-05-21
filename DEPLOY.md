@@ -289,6 +289,13 @@ On the import screen **before** Deploy:
 
 **Why Root Directory matters:** the Next app is not at the repo root; it is inside `frontend/frontpet`.
 
+**Wrong site on Vercel?** If you see an old page (“WELCOME TO PETCONNECT”, HOME / BROWSE / SOCIAL nav) instead of the teal landing (“Care for every pet, one calm dashboard”):
+
+1. **Root Directory** must be exactly `frontend/frontpet` (not empty, not `/`).
+2. **Deployments** → latest must be **Ready** (not Error). Failed builds leave **Production** on an old deploy.
+3. Pull latest `main` (includes Next.js 15.2.8) and **Redeploy**.
+4. After a green deploy, open the new deployment URL or **Promote to Production**.
+
 ### 4.4 Environment variables on Vercel
 
 Expand **Environment Variables**:
