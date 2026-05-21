@@ -192,11 +192,12 @@ Common fixes:
 
 ### 2.7 Get your API URL
 
-1. At the top of the service page, Render shows a URL like:
+1. At the top of the service page, Render shows your **actual** URL. It may look like:
    ```text
-   https://petconnect-api.onrender.com
+   https://petconnect-api-52ux.onrender.com
    ```
-2. **Copy and save it** — you need it for Vercel.
+   (The `-52ux` suffix is normal on free tier — **do not guess** `petconnect-api.onrender.com`.)
+2. **Copy the exact URL from the Render dashboard** — you need it for Vercel.
 
 ### 2.8 Test the API
 
@@ -302,14 +303,15 @@ Expand **Environment Variables**:
 
 | Key | Value | Environments |
 |-----|--------|----------------|
-| `NEXT_PUBLIC_API_URL` | `https://petconnect-api.onrender.com` | Production, Preview, Development |
+| `NEXT_PUBLIC_API_URL` | `https://petconnect-api-XXXX.onrender.com` | **Exact URL from Render** (e.g. `petconnect-api-52ux.onrender.com`) |
 
 **Rules:**
 
 - Use **your real** Render URL from Part 2.7.
 - **https** only, no trailing slash:
-  - Good: `https://petconnect-api.onrender.com`
-  - Bad: `https://petconnect-api.onrender.com/`
+  - Good: `https://petconnect-api-52ux.onrender.com` (your exact Render URL)
+  - Bad: `https://petconnect-api.onrender.com` (wrong host — causes CORS 500)
+  - Bad: any URL with a trailing `/`
   - Bad: `http://...`
 
 `NEXT_PUBLIC_*` is embedded in the browser bundle at **build time**. If you change it later, you must **redeploy** Vercel.
@@ -368,7 +370,7 @@ The API only allows browser requests from your Vercel URL (CORS). Both sides mus
 
 ```text
 Browser  →  Vercel (Next.js)     https://petconnect.vercel.app
-Browser  →  Render (Nest API)    https://petconnect-api.onrender.com
+Browser  →  Render (Nest API)    https://petconnect-api-52ux.onrender.com
 Render   →  Neon (Postgres)      DATABASE_URL (private connection)
 ```
 
@@ -409,7 +411,7 @@ You should see the **provider dashboard** with managed pets and bookings.
 
 | Status / error | Fix |
 |----------------|-----|
-| Failed / CORS | Set `FRONTEND_URL` on Render to `https://petconnect-gilt.vercel.app` (no trailing slash). Redeploy API. |
+| Failed / CORS | 1) Vercel `NEXT_PUBLIC_API_URL` must match **Render’s exact URL** (see service top bar). 2) Render `FRONTEND_URL` = your Vercel URL (no trailing slash). Redeploy both. |
 | 404 | Wrong `NEXT_PUBLIC_API_URL` on Vercel; redeploy Vercel |
 | 401 / 500 | API logs on Render → **Logs** tab |
 | Network timeout | Render sleeping; wait 60s and retry |

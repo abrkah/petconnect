@@ -8,6 +8,14 @@ import { UPLOADS_ROOT } from './common/uploads-path';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { MulterExceptionFilter } from './common/multer-exception.filter';
 
+function isAllowedCorsOrigin(origin: string, allowedOrigins: Set<string>): boolean {
+  const normalized = origin.replace(/\/$/, '');
+  return (
+    allowedOrigins.has(normalized) ||
+    /^https:\/\/[\w-]+\.vercel\.app$/.test(normalized)
+  );
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -18,17 +26,40 @@ async function bootstrap() {
     if (origin) allowedOrigins.add(origin);
   }
 
+  const applyCorsHeaders = (origin: string | undefined, res: express.Response) => {
+    if (origin && isAllowedCorsOrigin(origin, allowedOrigins)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Vary', 'Origin');
+    }
+  };
+
+  // Answer browser preflight before auth guards or route handlers run.
+  app.use((req, res, next) => {
+    const origin = req.headers.origin as string | undefined;
+    applyCorsHeaders(origin, res);
+    if (req.method === 'OPTIONS') {
+      res.setHeader(
+        'Access-Control-Allow-Methods',
+        'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+      );
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, Accept',
+      );
+      res.status(204).end();
+      return;
+    }
+    next();
+  });
+
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) {
         callback(null, true);
         return;
       }
-      const normalized = origin.replace(/\/$/, '');
-      const allowed =
-        allowedOrigins.has(normalized) ||
-        /^https:\/\/[\w-]+\.vercel\.app$/.test(normalized);
-      callback(null, allowed);
+      callback(null, isAllowedCorsOrigin(origin, allowedOrigins));
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
