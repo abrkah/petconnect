@@ -28,19 +28,32 @@ import { AppService } from './app.service';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
+      useFactory: (config: ConfigService) => {
+        const databaseUrl = config.get<string>('DATABASE_URL');
+        const sslEnabled =
+          config.get<string>('DATABASE_SSL') === 'true' ||
+          (databaseUrl?.includes('sslmode=require') ?? false);
 
-        host: config.get<string>('DATABASE_HOST') || 'localhost',
-        port: Number(config.get<string>('DATABASE_PORT') || 5432),
+        const shared = {
+          type: 'postgres' as const,
+          autoLoadEntities: true,
+          synchronize: config.get<string>('DATABASE_SYNC') !== 'false',
+          ...(sslEnabled ? { ssl: { rejectUnauthorized: false } } : {}),
+        };
 
-        username: config.get<string>('DATABASE_USER') || 'ab',
-        password: config.get<string>('DATABASE_PASSWORD') || '',
-        database: config.get<string>('DATABASE_NAME') || 'petcare',
+        if (databaseUrl) {
+          return { ...shared, url: databaseUrl };
+        }
 
-        autoLoadEntities: true,
-        synchronize: true, // ⚠️ disable in production
-      }),
+        return {
+          ...shared,
+          host: config.get<string>('DATABASE_HOST') || 'localhost',
+          port: Number(config.get<string>('DATABASE_PORT') || 5432),
+          username: config.get<string>('DATABASE_USER') || 'ab',
+          password: config.get<string>('DATABASE_PASSWORD') || '',
+          database: config.get<string>('DATABASE_NAME') || 'petcare',
+        };
+      },
     }),
 
     // Feature modules

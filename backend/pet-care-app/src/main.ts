@@ -9,7 +9,15 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { MulterExceptionFilter } from './common/multer-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(AppModule);
+
+  const frontendUrl = process.env.FRONTEND_URL?.trim();
+  app.enableCors({
+    origin: frontendUrl
+      ? [frontendUrl, /^https:\/\/.*\.vercel\.app$/]
+      : true,
+    credentials: true,
+  });
 
   app.useGlobalFilters(new MulterExceptionFilter());
 

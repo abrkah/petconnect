@@ -1,0 +1,27 @@
+# Render Blueprint — free NestJS API (connect Neon Postgres separately).
+# Dashboard: New → Blueprint → connect this repo, or create a Web Service manually.
+
+services:
+  - type: web
+    name: petconnect-api
+    runtime: node
+    rootDir: backend/pet-care-app
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/main.js
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE_IN
+        value: "86400"
+      - key: FRONTEND_URL
+        sync: false
+      - key: DATABASE_SYNC
+        value: "true"

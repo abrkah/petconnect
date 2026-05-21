@@ -395,13 +395,11 @@ async function seed() {
             user: ou,
             fullName: 'Alex Rivera',
             phoneNumber: '+1 (510) 555-0142',
-            profileImage: null,
           }
         : {
             user: ou,
             fullName: `Seed Owner ${i + 1}`,
             phoneNumber: `555100${String(i).padStart(4, '0')}`,
-            profileImage: null,
           },
     );
     await ds.getRepository(OwnerProfile).save(op);
@@ -431,7 +429,6 @@ async function seed() {
             serviceType: ServiceType.VACCINATION,
             bio:
               'Licensed veterinary technician offering in-home vaccinations, wellness checks, and gentle handling for anxious pets. 8+ years with cats and dogs in the Bay Area. Certified in fear-free handling.',
-            profileImage: null,
           }
         : {
             user: pu,
@@ -441,7 +438,6 @@ async function seed() {
             gender: i % 2 === 0 ? 'female' : 'male',
             serviceType: serviceRotation[i % 3],
             bio: `Professional pet care specialist #${i + 1}. Love animals!`,
-            profileImage: null,
           },
     );
     await ds.getRepository(ProviderProfile).save(pp);
@@ -465,7 +461,7 @@ async function seed() {
           showcasePet?.weight ??
           Math.round((6 + globalIdx * 0.55 + j * 1.2) * 10) / 10,
         gender: showcasePet?.gender ?? (globalIdx % 3 === 0 ? 'male' : 'female'),
-        photoUrl: showcasePet?.photoUrl ?? null,
+        ...(showcasePet?.photoUrl ? { photoUrl: showcasePet.photoUrl } : {}),
       });
       await ds.getRepository(Pet).save(p);
       pets.push(p);
