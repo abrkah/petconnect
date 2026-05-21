@@ -11,7 +11,8 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { useAuthenticationStore } from "@/app/utils/uistate/fetures/authentication";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/petconnect-api";
 import PetConnectAppShell from "@/components/layouts/PetConnectAppShell";
 import MessageNotificationBell from "@/components/layouts/MessageNotificationBell";
 
@@ -24,10 +25,37 @@ export default function OwnerLayout({
   const token = useAuthenticationStore((s) => s.token);
   const role = useAuthenticationStore((s) => s.loggedUserRole);
   const logout = useAuthenticationStore((s) => s.logout);
+  const [profileReady, setProfileReady] = useState(false);
 
   useEffect(() => {
-    if (!token) router.replace("/login?role=OWNER");
-    else if (role === "PROVIDER") router.replace("/provider");
+    if (!token) {
+      router.replace("/login?role=OWNER");
+      return;
+    }
+    if (role === "PROVIDER") {
+      router.replace("/provider");
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        await api.get("/owner/profile");
+        if (!cancelled) setProfileReady(true);
+      } catch (e: unknown) {
+        const status = (e as { response?: { status?: number } })?.response
+          ?.status;
+        if (status === 404 && !cancelled) {
+          router.replace("/onboarding/owner");
+          return;
+        }
+        if (!cancelled) setProfileReady(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [token, role, router]);
 
   const topItems = [
@@ -62,6 +90,10 @@ export default function OwnerLayout({
       label: <Link href="/owner/profile">Profile</Link>,
     },
   ];
+
+  if (!token || (role !== "PROVIDER" && !profileReady)) {
+    return null;
+  }
 
   return (
     <PetConnectAppShell

@@ -1,0 +1,93 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-petconnect}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-petconnect}
+      POSTGRES_DB: ${POSTGRES_DB:-petcare}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-petconnect} -d ${POSTGRES_DB:-petcare}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend/pet-care-app
+      target: development
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 5003
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${POSTGRES_USER:-petconnect}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-petconnect}
+      DATABASE_NAME: ${POSTGRES_DB:-petcare}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_EXPIRE_IN: ${JWT_EXPIRE_IN:-86400}
+    ports:
+      - "${API_PORT:-5003}:5003"
+    volumes:
+      - ./backend/pet-care-app:/app
+      - api_node_modules:/app/node_modules
+      - api_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend/frontpet
+      target: development
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5003}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    volumes:
+      - ./frontend/frontpet:/app
+      - web_node_modules:/app/node_modules
+    depends_on:
+      - api
+
+  seed:
+    build:
+      context: ./backend/pet-care-app
+      target: development
+    profiles: [seed]
+    env_file:
+      - .env
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${POSTGRES_USER:-petconnect}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-petconnect}
+      DATABASE_NAME: ${POSTGRES_DB:-petcare}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_EXPIRE_IN: ${JWT_EXPIRE_IN:-86400}
+    volumes:
+      - ./backend/pet-care-app:/app
+      - api_node_modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run seed
+
+volumes:
+  pgdata:
+  api_node_modules:
+  api_uploads:
+  web_node_modules:

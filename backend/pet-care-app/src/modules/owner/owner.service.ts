@@ -23,7 +23,6 @@ export class OwnerService {
   async onboard(userId: string, dto: OnboardOwnerDto) {
     const user = await this.userRepo.findOne({
       where: { id: userId, isDeleted: false },
-      relations: ['ownerProfile'],
     });
     if (!user || user.role !== UserRole.OWNER) {
       throw new BadRequestException('Invalid account');
@@ -34,18 +33,26 @@ export class OwnerService {
     if (existing) {
       throw new BadRequestException('Profile already created');
     }
-    const profile = this.ownerRepo.create({
-      user,
-      fullName: dto.fullName,
-      phoneNumber: dto.phoneNumber,
-    });
-    await this.ownerRepo.save(profile);
+    const profile = await this.ownerRepo.save(
+      this.ownerRepo.create({
+        fullName: dto.fullName,
+        phoneNumber: dto.phoneNumber,
+        user: { id: userId } as User,
+      }),
+    );
     user.isFirstLogin = false;
     await this.userRepo.save(user);
     return this.ownerRepo.findOne({
       where: { id: profile.id },
       relations: ['user', 'pets'],
     });
+  }
+
+  async hasProfile(userId: string): Promise<boolean> {
+    const count = await this.ownerRepo.count({
+      where: { user: { id: userId } },
+    });
+    return count > 0;
   }
 
   async getByUserId(userId: string) {

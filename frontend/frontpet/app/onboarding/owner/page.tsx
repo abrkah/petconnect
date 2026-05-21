@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button, Card, Form, Input, Typography, message } from "antd";
 import { useAuthenticationStore } from "@/app/utils/uistate/fetures/authentication";
 import { api } from "@/lib/petconnect-api";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const { Title, Text } = Typography;
 
@@ -13,18 +13,41 @@ export default function OnboardOwnerPage() {
   const token = useAuthenticationStore((s) => s.token);
   const role = useAuthenticationStore((s) => s.loggedUserRole);
 
+  const setIsFirstLogin = useAuthenticationStore((s) => s.setIsFirstLogin);
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
     if (!token) router.replace("/login?role=OWNER");
     else if (role && role !== "OWNER") router.replace("/provider");
   }, [token, role, router]);
 
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        await api.get("/owner/profile");
+        setIsFirstLogin(false);
+        router.replace("/owner");
+      } catch {
+        /* no profile yet — stay on onboarding */
+      }
+    })();
+  }, [token, router, setIsFirstLogin]);
+
   const onFinish = async (v: { fullName: string; phoneNumber: string }) => {
+    setSubmitting(true);
     try {
       await api.post("/owner/profile", v);
+      setIsFirstLogin(false);
       message.success("Profile saved");
-      router.replace("/owner");
-    } catch {
-      message.error("Could not save profile");
+      window.location.assign("/owner");
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      message.error(
+        err?.response?.data?.message || "Could not save profile",
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -50,7 +73,13 @@ export default function OnboardOwnerPage() {
           >
             <Input size="large" />
           </Form.Item>
-          <Button type="primary" htmlType="submit" block size="large">
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            size="large"
+            loading={submitting}
+          >
             Continue
           </Button>
         </Form>

@@ -1,15 +1,22 @@
 "use client";
 
 import { Suspense } from "react";
-import { Spin } from "antd";
 import RegisterInner from "./RegisterInner";
 
 export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <Spin size="large" />
+        <div className="flex min-h-screen items-center justify-center bg-slate-950">
+          <div className="flex flex-col items-center gap-4">
+            <div
+              className="h-11 w-11 animate-spin rounded-full border-2 border-teal-500 border-t-transparent"
+              aria-hidden
+            />
+            <p className="text-sm font-medium text-slate-400">
+              Loading registration…
+            </p>
+          </div>
         </div>
       }
     >

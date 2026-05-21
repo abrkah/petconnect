@@ -5,6 +5,7 @@ import { GoogleAuthGuard } from '../guards/google.guard';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from '../user/user.module';
+import { OwnerModule } from '../owner/owner.module';
 import { GoogleStrategy } from './strategy/google.strategy'; 
 import { LocalStrategy } from './strategy/local.strategy';
 import { Type } from 'class-transformer';
@@ -20,6 +21,7 @@ import { RolesGuard } from '../guards/roles/roles.guard';
   imports: [
     JwtModule.registerAsync(jwtConfig.asProvider()),
     forwardRef(() => UserModule),
+    OwnerModule,
     ConfigModule.forFeature(jwtConfig),
     TypeOrmModule.forFeature([User]),
   ],

@@ -6,7 +6,7 @@ import type { ColumnsType } from "antd/es/table";
 import Link from "next/link";
 import dayjs from "dayjs";
 import { PlusOutlined } from "@ant-design/icons";
-import { api } from "@/lib/petconnect-api";
+import { api, petPhotoSrc } from "@/lib/petconnect-api";
 import {
   serviceTypeIcon,
   serviceTypeLabel,
@@ -86,7 +86,7 @@ export default function OwnerBookingsPage() {
           {r.pet.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={r.pet.photoUrl}
+              src={petPhotoSrc(r.pet.photoUrl)}
               alt=""
               className="h-9 w-9 rounded-lg object-cover ring-1 ring-slate-200"
             />

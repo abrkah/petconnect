@@ -2,10 +2,11 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { UPLOADS_ROOT } from '../../common/uploads-path';
 
 @Injectable()
 export class FileService {
-  private baseDir = path.join(__dirname, '../..', 'uploads');
+  private baseDir = UPLOADS_ROOT;
 
   constructor() {
     this.ensureDirectoryExists(this.baseDir);
@@ -25,7 +26,11 @@ export class FileService {
     const folderPath = path.join(this.baseDir, folder);
     this.ensureDirectoryExists(folderPath);
 
-    const uniqueFileName = `${uuidv4()}-${file.originalname}`;
+    const safeOriginal = (file.originalname || 'photo')
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    const uniqueFileName = `${uuidv4()}-${safeOriginal || 'photo'}`;
     const filePath = path.join(folderPath, uniqueFileName);
 
     try {

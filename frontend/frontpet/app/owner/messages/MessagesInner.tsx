@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button, Form, Input, message as antMessage } from "antd";
 import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
@@ -30,8 +30,10 @@ type PeerPresence = {
 };
 
 function peerInitial(userId: string) {
-  const c = userId.replace(/-/g, "").charAt(0);
-  return /[0-9a-f]/i.test(c) ? c.toUpperCase() : "?";
+  const hex = userId.replace(/-/g, "");
+  const n = parseInt(hex.slice(0, 8), 16);
+  if (Number.isNaN(n)) return "U";
+  return String.fromCharCode(65 + (n % 26));
 }
 
 function peerHue(userId: string) {
@@ -65,6 +67,30 @@ export default function OwnerMessagesInner() {
   const [presenceByUser, setPresenceByUser] = useState<
     Record<string, PeerPresence>
   >({});
+  const notificationItems = useMessageNotificationsStore((s) => s.items);
+  const setSummary = useMessageNotificationsStore((s) => s.setSummary);
+  const setTotalUnread = useMessageNotificationsStore((s) => s.setTotalUnread);
+
+  const unreadByPeer = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const it of notificationItems) {
+      map[it.senderUserId] = it.unreadCount;
+    }
+    return map;
+  }, [notificationItems]);
+
+  const fetchUnreadSummary = useCallback(async () => {
+    if (!token) return;
+    try {
+      const { data } = await api.get<{
+        total: number;
+        items: { senderUserId: string; unreadCount: number }[];
+      }>("/message/notifications");
+      setSummary(data.total, data.items);
+    } catch {
+      /* ignore */
+    }
+  }, [token, setSummary]);
 
   useEffect(() => {
     activePeerRef.current = activePeer;
@@ -83,7 +109,8 @@ export default function OwnerMessagesInner() {
 
   useEffect(() => {
     loadInbox().catch(() => {});
-  }, [loadInbox]);
+    fetchUnreadSummary().catch(() => {});
+  }, [loadInbox, fetchUnreadSummary]);
 
   useEffect(() => {
     if (withId) setActivePeer(withId);
@@ -107,10 +134,11 @@ export default function OwnerMessagesInner() {
     api
       .post<{ totalUnread: number }>(`/message/read/${activePeer}`)
       .then(({ data }) => {
-        useMessageNotificationsStore.getState().setTotalUnread(data.totalUnread);
+        setTotalUnread(data.totalUnread);
+        return fetchUnreadSummary();
       })
       .catch(() => {});
-  }, [activePeer, token]);
+  }, [activePeer, token, setTotalUnread, fetchUnreadSummary]);
 
   useEffect(() => {
     if (!activePeer) return;
@@ -173,6 +201,7 @@ export default function OwnerMessagesInner() {
         document.visibilityState === "visible";
 
       loadInbox().catch(() => {});
+      fetchUnreadSummary().catch(() => {});
 
       if (
         msg.senderUserId !== myId &&
@@ -183,6 +212,15 @@ export default function OwnerMessagesInner() {
           if (prev.some((x) => x.id === msg.id)) return prev;
           return [...prev, msg];
         });
+        if (openAndVisible) {
+          api
+            .post<{ totalUnread: number }>(`/message/read/${msg.senderUserId}`)
+            .then(({ data }) => {
+              setTotalUnread(data.totalUnread);
+              return fetchUnreadSummary();
+            })
+            .catch(() => {});
+        }
       }
 
       const notify =
@@ -221,14 +259,20 @@ export default function OwnerMessagesInner() {
       }
     };
 
+    const onUnread = () => {
+      fetchUnreadSummary().catch(() => {});
+    };
+
     socket.on("presence:changed", onPresence);
     socket.on("message:new", onNewMessage);
+    socket.on("message:unread", onUnread);
 
     return () => {
       socket.off("presence:changed", onPresence);
       socket.off("message:new", onNewMessage);
+      socket.off("message:unread", onUnread);
     };
-  }, [token, myId, loadInbox, patchPresence]);
+  }, [token, myId, loadInbox, patchPresence, fetchUnreadSummary]);
 
   const send = async (v: { messageText: string }) => {
     const text = v.messageText?.trim();
@@ -289,6 +333,8 @@ export default function OwnerMessagesInner() {
                 const lm = t.lastMessage;
                 const fromMe = lm.senderUserId === myId;
                 const online = presenceByUser[t.userId]?.online;
+                const unread = unreadByPeer[t.userId] ?? 0;
+                const showUnreadBadge = unread > 0 && !active;
                 return (
                   <li key={t.userId}>
                     <button
@@ -318,11 +364,23 @@ export default function OwnerMessagesInner() {
                             aria-hidden
                           />
                         ) : null}
+                        {showUnreadBadge ? (
+                          <span
+                            className={`absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white shadow ring-2 ${
+                              active
+                                ? "bg-white text-teal-700 ring-teal-500"
+                                : "bg-teal-600 ring-white"
+                            }`}
+                            aria-label={`${unread} unread message${unread === 1 ? "" : "s"}`}
+                          >
+                            {unread > 99 ? "99+" : unread}
+                          </span>
+                        ) : null}
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline justify-between gap-2">
                           <span
-                            className={`truncate font-semibold ${active ? "text-white" : "text-slate-900"}`}
+                            className={`truncate ${active ? "font-semibold text-white" : showUnreadBadge ? "font-bold text-slate-900" : "font-semibold text-slate-900"}`}
                           >
                             {`User ${t.userId.slice(0, 8)}`}
                           </span>
@@ -338,7 +396,7 @@ export default function OwnerMessagesInner() {
                           </span>
                         </div>
                         <p
-                          className={`mt-0.5 truncate text-sm ${active ? "text-teal-50" : "text-slate-600"}`}
+                          className={`mt-0.5 truncate text-sm ${active ? "text-teal-50" : showUnreadBadge ? "font-medium text-slate-800" : "text-slate-600"}`}
                         >
                           {fromMe ? "You: " : ""}
                           {lm.messageText}

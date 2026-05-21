@@ -67,6 +67,7 @@ export default function MessageNotificationBell({
 
     const onUnread = (payload: { totalUnread: number }) => {
       setTotalUnread(payload.totalUnread);
+      fetchSummary();
     };
 
     socket.on("message:unread", onUnread);

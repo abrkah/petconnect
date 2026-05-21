@@ -11,7 +11,7 @@ import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { OwnerProfile } from '../owner/entities/owner.entity';
 import { ProviderPetAssignment } from '../provider-pet-assignment/entities/provider-pet-assignment.entity';
-import { UserRole } from '../user/entities/user.entity';
+import { FileService } from '../common/file.service';
 
 @Injectable()
 export class PetsService {
@@ -22,7 +22,13 @@ export class PetsService {
     private readonly ownerRepo: Repository<OwnerProfile>,
     @InjectRepository(ProviderPetAssignment)
     private readonly assignRepo: Repository<ProviderPetAssignment>,
+    private readonly fileService: FileService,
   ) {}
+
+  private photoUrlFromFile(file: Express.Multer.File): string {
+    const filename = this.fileService.saveFile(file, 'pets');
+    return `/uploads/pets/${filename}`;
+  }
 
   private async ownerProfileFor(userId: string) {
     const owner = await this.ownerRepo.findOne({
@@ -32,10 +38,27 @@ export class PetsService {
     return owner;
   }
 
-  async createForOwner(userId: string, dto: CreatePetDto) {
+  async createForOwner(
+    userId: string,
+    dto: CreatePetDto,
+    photo?: Express.Multer.File,
+  ) {
+    if (!photo) {
+      throw new BadRequestException(
+        'Pet photo is required. Upload an image file (JPEG, PNG, GIF, or WebP).',
+      );
+    }
     const owner = await this.ownerProfileFor(userId);
-    const pet = this.petRepo.create({ ...dto, owner });
-    return this.petRepo.save(pet);
+    const pet = this.petRepo.create({
+      ...dto,
+      owner,
+      photoUrl: this.photoUrlFromFile(photo),
+    });
+    const saved = await this.petRepo.save(pet);
+    return {
+      message: `${saved.name} was added successfully`,
+      pet: saved,
+    };
   }
 
   async findAllForOwner(userId: string) {
@@ -56,10 +79,22 @@ export class PetsService {
     return pet;
   }
 
-  async updateForOwner(userId: string, petId: string, dto: UpdatePetDto) {
+  async updateForOwner(
+    userId: string,
+    petId: string,
+    dto: UpdatePetDto,
+    photo?: Express.Multer.File,
+  ) {
     const pet = await this.findOneForOwner(userId, petId);
     Object.assign(pet, dto);
-    return this.petRepo.save(pet);
+    if (photo) {
+      pet.photoUrl = this.photoUrlFromFile(photo);
+    }
+    const saved = await this.petRepo.save(pet);
+    return {
+      message: `${saved.name} was updated successfully`,
+      pet: saved,
+    };
   }
 
   async removeForOwner(userId: string, petId: string) {
@@ -68,7 +103,6 @@ export class PetsService {
     return { deleted: true };
   }
 
-  /** Provider: pets with active assignment */
   async findManagedForProvider(userId: string) {
     const rows = await this.assignRepo.find({
       where: {

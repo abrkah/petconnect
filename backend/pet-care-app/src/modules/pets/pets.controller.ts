@@ -6,7 +6,10 @@ import {
   Patch,
   Param,
   Delete,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { PetsService } from './pets.service';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
@@ -14,6 +17,7 @@ import { Roles } from '../auth/decorator/roles.decorators';
 import { UserRole } from '../user/entities/user.entity';
 import { AuthUser } from '../auth/decorators/auth-user.decorator';
 import type { CurrentUser } from '../auth/types/current-user';
+import { petPhotoUploadOptions } from './pets-upload.config';
 
 @Controller('pets')
 export class PetsController {
@@ -21,8 +25,13 @@ export class PetsController {
 
   @Post()
   @Roles(UserRole.OWNER)
-  create(@AuthUser() user: CurrentUser, @Body() dto: CreatePetDto) {
-    return this.petsService.createForOwner(user.id, dto);
+  @UseInterceptors(FileInterceptor('photo', petPhotoUploadOptions))
+  create(
+    @AuthUser() user: CurrentUser,
+    @Body() dto: CreatePetDto,
+    @UploadedFile() photo?: Express.Multer.File,
+  ) {
+    return this.petsService.createForOwner(user.id, dto, photo);
   }
 
   @Get('mine')
@@ -51,12 +60,14 @@ export class PetsController {
 
   @Patch(':id')
   @Roles(UserRole.OWNER)
+  @UseInterceptors(FileInterceptor('photo', petPhotoUploadOptions))
   update(
     @AuthUser() user: CurrentUser,
     @Param('id') id: string,
     @Body() dto: UpdatePetDto,
+    @UploadedFile() photo?: Express.Multer.File,
   ) {
-    return this.petsService.updateForOwner(user.id, id, dto);
+    return this.petsService.updateForOwner(user.id, id, dto, photo);
   }
 
   @Delete(':id')

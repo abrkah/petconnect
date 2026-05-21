@@ -1,11 +1,16 @@
 import {
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
   Min,
   MinLength,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { PetGender } from '../../../common/pet-gender.enum';
+
+const emptyToUndefined = ({ value }: { value: unknown }) =>
+  value === '' || value === null || value === undefined ? undefined : value;
 
 export class CreatePetDto {
   @IsString()
@@ -22,15 +27,16 @@ export class CreatePetDto {
   age!: number;
 
   @IsOptional()
+  @Transform(emptyToUndefined)
   @Type(() => Number)
   @IsNumber()
+  @Min(0)
   weight?: number;
 
   @IsOptional()
-  @IsString()
-  gender?: string;
-
-  @IsOptional()
-  @IsString()
-  photoUrl?: string;
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @IsEnum(PetGender)
+  gender?: PetGender;
 }

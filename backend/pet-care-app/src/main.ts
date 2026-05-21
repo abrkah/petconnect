@@ -2,13 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import * as express from 'express';
-import { join } from 'path';
+import { UPLOADS_ROOT } from './common/uploads-path';
 
 // 👇 ADD THESE
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { MulterExceptionFilter } from './common/multer-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
+
+  app.useGlobalFilters(new MulterExceptionFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -18,8 +21,7 @@ async function bootstrap() {
     }),
   );
 
-  // Serve uploads folder as static
-  app.use('/uploads', express.static(join(__dirname, '../../uploads')));
+  app.use('/uploads', express.static(UPLOADS_ROOT));
 
   // 👇 Swagger config
   const config = new DocumentBuilder()
@@ -32,6 +34,7 @@ async function bootstrap() {
 
   SwaggerModule.setup('api', app, document); // 👈 route
 
-  await app.listen(5003);
+  const port = Number(process.env.PORT) || 5003;
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();

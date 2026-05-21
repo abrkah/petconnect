@@ -24,6 +24,7 @@ import { UserRole } from '../user/entities/user.entity';
 import { LocalAuthGuard } from '../guards/local-auth/local-auth.guard';
 import { Public } from './decorator/public.decorator';
 import { CreateUserDto } from '../user/dto/create-user.dto';
+import { OwnerService } from '../owner/owner.service';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -31,6 +32,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
+    private readonly ownerService: OwnerService,
   ) {}
 
   @Public()
@@ -73,11 +75,17 @@ export class AuthController {
 
     const token = this.authService.login(user.id);
 
+    let isFirstLogin = user.isFirstLogin;
+    if (user.role === UserRole.OWNER) {
+      const hasProfile = await this.ownerService.hasProfile(user.id);
+      if (!hasProfile) isFirstLogin = true;
+    }
+
     return {
       id: user.id,
       token,
       role: user.role,
-      isFirstLogin: user.isFirstLogin,
+      isFirstLogin,
     };
   }
 

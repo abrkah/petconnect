@@ -5,13 +5,14 @@ import { PetsController } from './pets.controller';
 import { Pet } from './entities/pet.entity';
 import { OwnerProfile } from '../owner/entities/owner.entity';
 import { ProviderPetAssignment } from '../provider-pet-assignment/entities/provider-pet-assignment.entity';
+import { FileService } from '../common/file.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Pet, OwnerProfile, ProviderPetAssignment]),
   ],
   controllers: [PetsController],
-  providers: [PetsService],
+  providers: [PetsService, FileService],
   exports: [PetsService],
 })
 export class PetsModule {}
