@@ -1,9 +1,21 @@
 import axios, { AxiosInstance } from "axios";
 import { useAuthenticationStore } from "@/app/utils/uistate/fetures/authentication";
 
-const baseURL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:5003";
+/** Wrong host often set in Vercel; real service URL is on the Render dashboard. */
+const WRONG_RENDER_API = "https://petconnect-api.onrender.com";
+const DEFAULT_RENDER_API = "https://petconnect-api-52ux.onrender.com";
+
+export function getApiBaseUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+    "http://localhost:5003";
+  if (raw === WRONG_RENDER_API) {
+    return DEFAULT_RENDER_API;
+  }
+  return raw;
+}
+
+const baseURL = getApiBaseUrl();
 
 export const api: AxiosInstance = axios.create({ baseURL });
 

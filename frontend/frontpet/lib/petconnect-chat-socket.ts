@@ -1,10 +1,8 @@
 import { io, type Socket } from "socket.io-client";
+import { getApiBaseUrl } from "@/lib/petconnect-api";
 
 function chatSocketUrl(): string {
-  const base =
-    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-    "http://localhost:5003";
-  return `${base}/chat`;
+  return `${getApiBaseUrl()}/chat`;
 }
 
 let socket: Socket | null = null;
