@@ -9,7 +9,7 @@ services:
     buildCommand: npm ci && npm run build
     startCommand: node dist/main.js
     plan: free
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production

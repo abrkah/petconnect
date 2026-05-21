@@ -158,7 +158,7 @@ Scroll to **Environment Variables** → **Add Environment Variable** for each ro
 | `JWT_SECRET` | *(see below)* | Must be long and random |
 | `JWT_EXPIRE_IN` | `86400` | Token lifetime in seconds (1 day) |
 | `DATABASE_SYNC` | `true` | Auto-creates tables (OK for demo; not for serious production) |
-| `FRONTEND_URL` | `https://placeholder.vercel.app` | **Temporary** — update after Vercel in Part 4 |
+| `FRONTEND_URL` | `https://petconnect-gilt.vercel.app` | Your Vercel URL, **no trailing slash**. Comma-separate multiple origins if needed. |
 
 **Generate `JWT_SECRET`:**
 
@@ -409,13 +409,31 @@ You should see the **provider dashboard** with managed pets and bookings.
 
 | Status / error | Fix |
 |----------------|-----|
-| Failed / CORS | `FRONTEND_URL` on Render must match Vercel URL exactly; redeploy API |
+| Failed / CORS | Set `FRONTEND_URL` on Render to `https://petconnect-gilt.vercel.app` (no trailing slash). Redeploy API. |
 | 404 | Wrong `NEXT_PUBLIC_API_URL` on Vercel; redeploy Vercel |
 | 401 / 500 | API logs on Render → **Logs** tab |
 | Network timeout | Render sleeping; wait 60s and retry |
 | 401 invalid credentials | Run `npm run seed` again (Part 3) |
+| `{"success":false,"error":...}` or `/health` without `"service":"petconnect-api"` | **Wrong app on Render** — see below |
 
-3. Test API directly (optional):
+3. **Confirm Render is running *this* Nest API** (not another project):
+
+   ```bash
+   curl -s https://YOUR-API.onrender.com/health
+   ```
+
+   Must return: `{"status":"ok","service":"petconnect-api"}`.
+
+   Also open `https://YOUR-API.onrender.com/api` — you should see **Swagger** docs.
+
+   If `/health` looks different or `/api` is 404, fix Render:
+
+   - **Root Directory:** `backend/pet-care-app`
+   - **Build:** `npm ci && npm run build`
+   - **Start:** `node dist/main.js`
+   - Connected repo: your `petconnect` GitHub repo, branch `main`
+
+4. Test login directly (optional):
 
    ```bash
    curl -X POST https://YOUR-API.onrender.com/auth/login \
@@ -423,7 +441,7 @@ You should see the **provider dashboard** with managed pets and bookings.
      -d '{"email":"seed-owner-0@petconnect.test","password":"SeedPass123!"}'
    ```
 
-   A successful response includes an `access_token` or similar.
+   A successful response includes `token`, `id`, and `role`.
 
 ---
 

@@ -11,12 +11,28 @@ import { MulterExceptionFilter } from './common/multer-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  const frontendUrl = process.env.FRONTEND_URL?.trim();
+  const allowedOrigins = new Set<string>();
+  const frontendUrls = process.env.FRONTEND_URL?.split(',') ?? [];
+  for (const raw of frontendUrls) {
+    const origin = raw.trim().replace(/\/$/, '');
+    if (origin) allowedOrigins.add(origin);
+  }
+
   app.enableCors({
-    origin: frontendUrl
-      ? [frontendUrl, /^https:\/\/.*\.vercel\.app$/]
-      : true,
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      const normalized = origin.replace(/\/$/, '');
+      const allowed =
+        allowedOrigins.has(normalized) ||
+        /^https:\/\/[\w-]+\.vercel\.app$/.test(normalized);
+      callback(null, allowed);
+    },
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
   app.useGlobalFilters(new MulterExceptionFilter());
