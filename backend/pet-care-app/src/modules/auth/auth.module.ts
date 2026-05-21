@@ -17,6 +17,14 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from '../guards/jwt-auth/jwt-auth.guard'; 
 import { RolesGuard } from '../guards/roles/roles.guard';
 
+const googleOAuthEnabled =
+  !!process.env.GOOGLE_CLIENT_ID?.trim() &&
+  !!process.env.GOOGLE_CLIENT_SECRET?.trim();
+
+const googleAuthProviders = googleOAuthEnabled
+  ? [GoogleStrategy, GoogleAuthGuard]
+  : [];
+
 @Module({
   imports: [
     JwtModule.registerAsync(jwtConfig.asProvider()),
@@ -27,8 +35,7 @@ import { RolesGuard } from '../guards/roles/roles.guard';
   ],
   providers: [
     AuthService,
-    GoogleStrategy,
-    GoogleAuthGuard,
+    ...googleAuthProviders,
     LocalStrategy,
     JWTStrategy,
     {

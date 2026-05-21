@@ -14,7 +14,6 @@ import {
   Request,
 } from '@nestjs/common';
 
-import { GoogleAuthGuard } from '../guards/google.guard';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { ApiTags } from '@nestjs/swagger';
@@ -37,9 +36,11 @@ export class AuthController {
 
   @Public()
   @Get('google')
-  @UseGuards(GoogleAuthGuard)
   async googleLogin() {
-    return 'from google.com';
+    if (!process.env.GOOGLE_CLIENT_ID?.trim()) {
+      throw new NotFoundException('Google sign-in is not configured');
+    }
+    return 'Redirect to Google OAuth (requires GoogleAuthGuard when configured)';
   }
 
   @Roles(UserRole.OWNER)
@@ -48,9 +49,12 @@ export class AuthController {
     return 'Role Test';
   }
 
+  @Public()
   @Get('google/callback')
-  @UseGuards(GoogleAuthGuard)
   async googleCallback(@Query('email') email: string, @Res() res: Response) {
+    if (!process.env.GOOGLE_CLIENT_ID?.trim()) {
+      throw new NotFoundException('Google sign-in is not configured');
+    }
     const existingUser = await this.authService.findUserByEmail(email);
 
     if (!existingUser) {
