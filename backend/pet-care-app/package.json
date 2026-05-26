@@ -19,7 +19,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "ts-node --transpile-only src/seed/seed.ts",
-    "seed:clear": "ts-node --transpile-only src/seed/seed.ts --clear-only"
+    "seed:prod": "node dist/seed/seed.js",
+    "seed:clear": "ts-node --transpile-only src/seed/seed.ts --clear-only",
+    "seed:clear:prod": "node dist/seed/seed.js --clear-only"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

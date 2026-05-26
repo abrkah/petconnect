@@ -23,9 +23,15 @@ import {
 import { ProviderAvailability } from '../modules/provider-availability/entities/provider-availability.entity';
 import { PetNote } from '../modules/pet-notes/entities/pet-note.entity';
 
-const N = 10;
-/** Pets created for each seed owner (10 owners × 4 = 40 pets). */
+/** Single demo owner + provider with full UI data (pets, bookings, messages, health). */
+const N = 1;
 const PETS_PER_OWNER = 4;
+const DEMO_PASSWORD = 'SeedPass123!';
+
+const SHOWCASE_OWNER_IMAGE =
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80';
+const SHOWCASE_PROVIDER_IMAGE =
+  'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=400&q=80';
 /** Matched demo accounts — every field filled, linked only to each other. */
 const SHOWCASE_OWNER_IDX = 0;
 const SHOWCASE_PROVIDER_IDX = 0;
@@ -167,6 +173,16 @@ async function seedShowcasePair(
   });
   await ds.getRepository(HireRequest).save(pendingHire);
 
+  const rejectedHire = ds.getRepository(HireRequest).create({
+    owner,
+    provider,
+    status: HireStatus.REJECTED,
+    message:
+      'Trial request for Sunday evening slot — we can revisit in spring.',
+    petIds: [pairPets[1].id],
+  });
+  await ds.getRepository(HireRequest).save(rejectedHire);
+
   for (const pet of pairPets) {
     await ds.getRepository(ProviderPetAssignment).save(
       ds.getRepository(ProviderPetAssignment).create({
@@ -180,27 +196,88 @@ async function seedShowcasePair(
   }
 
   const bookingPlan: {
+    petIdx: number;
     status: BookingStatus;
     timeSlot: string;
     startDay: number;
     endDay: number;
+    service: ServiceType;
   }[] = [
-    { status: BookingStatus.CONFIRMED, timeSlot: '09:30', startDay: 12, endDay: 12 },
-    { status: BookingStatus.PENDING, timeSlot: '11:00', startDay: 18, endDay: 18 },
-    { status: BookingStatus.COMPLETED, timeSlot: '14:00', startDay: 5, endDay: 5 },
-    { status: BookingStatus.CONFIRMED, timeSlot: '16:30', startDay: 24, endDay: 25 },
+    {
+      petIdx: 0,
+      status: BookingStatus.CONFIRMED,
+      timeSlot: '09:30',
+      startDay: 12,
+      endDay: 12,
+      service: ServiceType.VACCINATION,
+    },
+    {
+      petIdx: 1,
+      status: BookingStatus.PENDING,
+      timeSlot: '11:00',
+      startDay: 18,
+      endDay: 18,
+      service: ServiceType.GENERAL_SERVICE,
+    },
+    {
+      petIdx: 2,
+      status: BookingStatus.COMPLETED,
+      timeSlot: '14:00',
+      startDay: 5,
+      endDay: 5,
+      service: ServiceType.VACCINATION,
+    },
+    {
+      petIdx: 3,
+      status: BookingStatus.CONFIRMED,
+      timeSlot: '16:30',
+      startDay: 24,
+      endDay: 25,
+      service: ServiceType.DOG_WALKING,
+    },
+    {
+      petIdx: 0,
+      status: BookingStatus.COMPLETED,
+      timeSlot: '10:00',
+      startDay: 2,
+      endDay: 2,
+      service: ServiceType.GENERAL_SERVICE,
+    },
+    {
+      petIdx: 2,
+      status: BookingStatus.PENDING,
+      timeSlot: '13:30',
+      startDay: 28,
+      endDay: 28,
+      service: ServiceType.VACCINATION,
+    },
+    {
+      petIdx: 3,
+      status: BookingStatus.CONFIRMED,
+      timeSlot: '08:00',
+      startDay: 14,
+      endDay: 14,
+      service: ServiceType.VACCINATION,
+    },
+    {
+      petIdx: 1,
+      status: BookingStatus.COMPLETED,
+      timeSlot: '15:00',
+      startDay: 8,
+      endDay: 8,
+      service: ServiceType.GENERAL_SERVICE,
+    },
   ];
 
-  for (let j = 0; j < pairPets.length; j++) {
-    const plan = bookingPlan[j];
+  for (const plan of bookingPlan) {
     const start = new Date(2026, 5, plan.startDay);
     const end = new Date(2026, 5, plan.endDay);
     await ds.getRepository(Booking).save(
       ds.getRepository(Booking).create({
         owner,
         provider,
-        pet: pairPets[j],
-        serviceType: ServiceType.VACCINATION,
+        pet: pairPets[plan.petIdx],
+        serviceType: plan.service,
         startDate: start.toISOString().slice(0, 10),
         endDate: end.toISOString().slice(0, 10),
         timeSlot: plan.timeSlot,
@@ -217,7 +294,7 @@ async function seedShowcasePair(
     {
       from: 'owner',
       text: 'Hi Maya — Luna’s due for her annual rabies. Do you have a slot next Tuesday morning?',
-      isRead: false,
+      isRead: true,
     },
     {
       from: 'provider',
@@ -231,8 +308,48 @@ async function seedShowcasePair(
     },
     {
       from: 'provider',
+      text: 'I have openings Wed–Fri this week too if Tuesday does not work.',
+      isRead: true,
+    },
+    {
+      from: 'owner',
+      text: 'Tuesday is great. Can we bundle Bella and Charlie in the same visit?',
+      isRead: true,
+    },
+    {
+      from: 'provider',
+      text: 'Absolutely — I will block 90 minutes for a multi-pet wellness round.',
+      isRead: false,
+    },
+    {
+      from: 'owner',
+      text: 'Charlie had a slight limp after the park yesterday — nothing major but worth noting.',
+      isRead: false,
+    },
+    {
+      from: 'provider',
+      text: 'Thanks for the heads-up. I will do a quick gait check before vaccines.',
+      isRead: false,
+    },
+    {
+      from: 'provider',
       text: 'Reminder: Bella’s Bordetella booster is still pending your approval in the pet hub.',
       isRead: false,
+    },
+    {
+      from: 'owner',
+      text: 'Just approved it. Also added Luna’s new weight from this morning.',
+      isRead: true,
+    },
+    {
+      from: 'provider',
+      text: 'Saw the weight log — healthy trend. I flagged one provider entry for you to review.',
+      isRead: false,
+    },
+    {
+      from: 'owner',
+      text: 'Approved. See you Tuesday!',
+      isRead: true,
     },
   ];
 
@@ -247,22 +364,38 @@ async function seedShowcasePair(
     );
   }
 
-  const vacPlan: { petIdx: number; name: string; due?: Date; providerAdded?: boolean; approved?: boolean }[] = [
+  const vacPlan: {
+    petIdx: number;
+    name: string;
+    due?: Date;
+    providerAdded?: boolean;
+    approved?: boolean;
+  }[] = [
     { petIdx: 0, name: 'Rabies (1 yr)', due: dueSoon },
     { petIdx: 0, name: 'DHPP booster', due: new Date(2026, 8, 1) },
+    { petIdx: 0, name: 'Leptospirosis', due: new Date(2026, 9, 10) },
     { petIdx: 1, name: 'FVRCP (feline)', due: new Date(2026, 7, 15) },
+    { petIdx: 1, name: 'Rabies (feline 3 yr)', due: new Date(2027, 1, 5) },
     { petIdx: 2, name: 'Bordetella', due: new Date(2026, 6, 20) },
+    { petIdx: 2, name: 'DHPP', due: new Date(2026, 10, 1) },
     {
       petIdx: 2,
       name: 'Bordetella (provider draft)',
       providerAdded: true,
       approved: false,
     },
+    { petIdx: 3, name: 'Rabies (annual)', due: new Date(2026, 11, 1) },
     {
       petIdx: 3,
-      name: 'Rabies (annual)',
+      name: 'Lyme (provider added)',
       providerAdded: true,
       approved: true,
+    },
+    {
+      petIdx: 0,
+      name: 'Influenza (provider draft)',
+      providerAdded: true,
+      approved: false,
     },
   ];
 
@@ -280,7 +413,7 @@ async function seedShowcasePair(
     );
   }
 
-  const weightPoints = [18, 10, 10, 12];
+  const weightPoints = [20, 16, 18, 16];
   for (let petIdx = 0; petIdx < pairPets.length; petIdx++) {
     const points = weightPoints[petIdx];
     const baseKg = pairPets[petIdx].weight;
@@ -315,19 +448,54 @@ async function seedShowcasePair(
     }),
   );
 
-  const noteTexts = [
-    'Luna: grain-free diet; mild hip stiffness in cold weather.',
-    'Luna: heartworm prevention due in August.',
-    'Max: indoor only; hide when doorbell rings.',
-    'Bella: loves cheese treats — limit to training only.',
-    'Charlie: high energy — 45 min walk before visits.',
-    'Charlie: microchip registered with city shelter.',
+  const noteTexts: { petIdx: number; content: string }[] = [
+    {
+      petIdx: 0,
+      content:
+        'Luna: grain-free diet; mild hip stiffness in cold weather — glucosamine daily.',
+    },
+    {
+      petIdx: 0,
+      content: 'Luna: heartworm prevention due in August; prefers morning meds with food.',
+    },
+    {
+      petIdx: 0,
+      content: 'Luna: allergic to chicken — use salmon-based treats only.',
+    },
+    {
+      petIdx: 1,
+      content: 'Max: indoor only; hide when doorbell rings — allow 5 min to warm up.',
+    },
+    {
+      petIdx: 1,
+      content: 'Max: Feliway diffuser in exam room recommended.',
+    },
+    {
+      petIdx: 2,
+      content: 'Bella: loves cheese treats — limit to training only (max 3/day).',
+    },
+    {
+      petIdx: 2,
+      content: 'Bella: prior ear infection 2024 — check ears at each visit.',
+    },
+    {
+      petIdx: 3,
+      content: 'Charlie: high energy — 45 min walk before visits for calmer exams.',
+    },
+    {
+      petIdx: 3,
+      content: 'Charlie: microchip registered with city shelter #A-88421.',
+    },
+    {
+      petIdx: 3,
+      content: 'Charlie: friendly with other dogs; use front-yard gate on arrival.',
+    },
   ];
-  for (let i = 0; i < noteTexts.length; i++) {
+  for (const note of noteTexts) {
     await ds.getRepository(PetNote).save(
       ds.getRepository(PetNote).create({
-        pet: pairPets[Math.floor(i / 2) % pairPets.length],
-        content: noteTexts[i],
+        pet: pairPets[note.petIdx],
+        content: note.content,
       }),
     );
   }
@@ -365,7 +533,7 @@ async function seed() {
   console.log('Clearing existing PetConnect tables…');
   await clear(ds);
 
-  const hash = await bcrypt.hash('SeedPass123!', 12);
+  const hash = await bcrypt.hash(DEMO_PASSWORD, 12);
   const owners: OwnerProfile[] = [];
   const providers: ProviderProfile[] = [];
   const ownerUsers: User[] = [];
@@ -395,6 +563,7 @@ async function seed() {
             user: ou,
             fullName: 'Alex Rivera',
             phoneNumber: '+1 (510) 555-0142',
+            profileImage: SHOWCASE_OWNER_IMAGE,
           }
         : {
             user: ou,
@@ -427,8 +596,9 @@ async function seed() {
             hourlyPayment: 42.5,
             gender: 'female',
             serviceType: ServiceType.VACCINATION,
+            profileImage: SHOWCASE_PROVIDER_IMAGE,
             bio:
-              'Licensed veterinary technician offering in-home vaccinations, wellness checks, and gentle handling for anxious pets. 8+ years with cats and dogs in the Bay Area. Certified in fear-free handling.',
+              'Licensed veterinary technician offering in-home vaccinations, wellness checks, and gentle handling for anxious pets. 8+ years with cats and dogs in the Bay Area. Certified in fear-free handling. Serving Oakland, Berkeley, and San Francisco.',
           }
         : {
             user: pu,
@@ -643,15 +813,17 @@ async function seed() {
   const showcaseOwner = owners[SHOWCASE_OWNER_IDX];
   const showcaseProvider = providers[SHOWCASE_PROVIDER_IDX];
   console.log(
-    `\n${PETS_PER_OWNER} pets per owner (${pets.length} total). Password for all: SeedPass123!\n` +
-      `\n  === Showcase pair (use together — all fields filled) ===\n` +
-      `  Owner:    seed-owner-0@petconnect.test\n` +
-      `    Name:   ${showcaseOwner.fullName} · ${showcaseOwner.phoneNumber}\n` +
-      `    Pets:   ${petsByOwner[0].map((p) => `${p.name} (${p.breed}, ${p.gender}, ${p.weight}kg)`).join('; ')}\n` +
-      `  Provider: seed-provider-0@petconnect.test\n` +
-      `    Name:   ${showcaseProvider.fullName} · ${showcaseProvider.phoneNumber}\n` +
-      `    Rate:   $${showcaseProvider.hourlyPayment}/hr · ${showcaseProvider.serviceType} · ${showcaseProvider.gender}\n` +
-      `    Bio + ${SHOWCASE_AVAILABILITY.length} availability slots · 4 pets · 4 bookings · messages\n`,
+    `\n=== Demo accounts (1 owner + 1 provider, full web data) ===\n` +
+      `Password: ${DEMO_PASSWORD}\n\n` +
+      `OWNER  seed-owner-0@petconnect.test\n` +
+      `  ${showcaseOwner.fullName} · ${showcaseOwner.phoneNumber}\n` +
+      `  Pets (${petsByOwner[0].length}): ${petsByOwner[0].map((p) => `${p.name} (${p.breed})`).join(', ')}\n` +
+      `  → bookings, messages, vaccinations, weight charts, notes per pet\n\n` +
+      `PROVIDER  seed-provider-0@petconnect.test\n` +
+      `  ${showcaseProvider.fullName} · ${showcaseProvider.phoneNumber}\n` +
+      `  $${showcaseProvider.hourlyPayment}/hr · ${showcaseProvider.serviceType}\n` +
+      `  ${SHOWCASE_AVAILABILITY.length} availability slots · linked to owner’s 4 pets\n` +
+      `  → hire requests (approved/pending/rejected), 8 bookings, 12 messages\n`,
   );
 
   await app.close();
