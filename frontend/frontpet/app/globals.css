@@ -28,6 +28,14 @@
 html {
   scroll-behavior: smooth;
 }
+.dashboard-scope {
+  --spacing: 0.2rem;
+  font-size: 13px;
+}
+
+.dashboard-scope * {
+  font-size: inherit;
+}
 
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -39,6 +47,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+
 }
 
 ::selection {

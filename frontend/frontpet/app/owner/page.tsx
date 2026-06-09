@@ -247,7 +247,7 @@ export default function OwnerHomePage() {
     <div className="space-y-8 pb-4">
       {/* Hero */}
       <section
-        className={`relative overflow-hidden rounded-3xl border border-teal-200/40 bg-gradient-to-br from-teal-600 via-teal-700 to-slate-900 px-6 py-8 text-white shadow-xl shadow-teal-900/25 sm:px-8 sm:py-10`}
+        className={ `relative overflow-hidden rounded-3xl border border-teal-200/40 bg-gradient-to-br from-teal-600 via-teal-700 to-slate-900 px-6 py-8 text-white shadow-xl shadow-teal-900/25 sm:px-8 sm:py-10`}
       >
         <div
           className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/25 blur-3xl"
