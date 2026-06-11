@@ -7,7 +7,6 @@ import {
   Form,
   Input,
   InputNumber,
-  message,
   Card,
   Select,
   Upload,
@@ -27,6 +26,7 @@ import {
   petPhotoSrc,
   type PetGender,
 } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 
 type Pet = {
   id: string;
@@ -41,7 +41,6 @@ type Pet = {
 const GENDER_OPTIONS: { value: PetGender; label: string }[] = [
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
-  { value: "other", label: "Other" },
 ];
 
 export default function OwnerPetsPage() {
@@ -68,7 +67,7 @@ export default function OwnerPetsPage() {
       const { data } = await api.get<Pet[]>("/pets/mine");
       setPets(data);
     } catch {
-      message.error("Could not load pets");
+      notifyError("Could not load pets");
     } finally {
       setLoading(false);
     }
@@ -88,7 +87,7 @@ export default function OwnerPetsPage() {
   const submit = async (values: Record<string, unknown>) => {
     const photo = resolvePhotoFile();
     if (!editing && !photo) {
-      message.error("Please upload a pet photo (image file required)");
+      notifyError("Please upload a pet photo (image file required)");
       return;
     }
 
@@ -100,28 +99,19 @@ export default function OwnerPetsPage() {
           `/pets/${editing.id}`,
           fd,
         );
-        message.success(
+        notifySuccess(
           data.message ?? `${values.name} was updated successfully`,
         );
       } else {
         const { data } = await api.post<{ message?: string }>("/pets", fd);
-        message.success(
+        notifySuccess(
           data.message ?? `${values.name} was added successfully`,
         );
       }
       await load();
       resetModal();
     } catch (err: unknown) {
-      const msg = (
-        err as { response?: { data?: { message?: string | string[] } } }
-      )?.response?.data?.message;
-      if (Array.isArray(msg)) {
-        message.error(msg.join(", "));
-      } else if (typeof msg === "string") {
-        message.error(msg);
-      } else {
-        message.error("Save failed");
-      }
+      notifyError(extractApiError(err, "Save failed"));
     } finally {
       setSubmitting(false);
     }
@@ -175,7 +165,7 @@ export default function OwnerPetsPage() {
           type="primary"
           size="large"
           icon={<PlusOutlined />}
-          className="!h-11 !rounded-xl !border-0 !bg-emerald-600 hover:!bg-emerald-500"
+          className="!h-11 !rounded-xl !border-0"
           onClick={openAdd}
         >
           Add pet
@@ -238,8 +228,7 @@ export default function OwnerPetsPage() {
                     <Button
                       type="primary"
                       block
-                      className="!rounded-xl !bg-sky-600 hover:!bg-sky-500"
-                    >
+                      className="!rounded-xl !bg-sky-600 hover:!bg-sky-500"                    >
                       View
                     </Button>
                   </Link>
@@ -426,7 +415,7 @@ export default function OwnerPetsPage() {
                           ) ||
                           /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(file.name);
                         if (!ok) {
-                          message.error(
+                          notifyError(
                             "Use JPEG, PNG, GIF, WebP, or HEIC (max 5 MB).",
                           );
                           return Upload.LIST_IGNORE;
@@ -463,7 +452,6 @@ export default function OwnerPetsPage() {
 
                 <div className="mt-8 flex gap-3 border-t border-slate-100 pt-6">
                   <Button
-                    type="button"
                     size="large"
                     disabled={submitting}
                     className="!h-11 flex-1 !rounded-xl"
@@ -477,7 +465,7 @@ export default function OwnerPetsPage() {
                     size="large"
                     loading={submitting}
                     disabled={submitting}
-                    className="!h-11 flex-[1.4] !rounded-xl !border-0 !bg-emerald-600 !font-semibold hover:!bg-emerald-500"
+                    className="!h-11 flex-[1.4] !rounded-xl !border-0 !font-semibold"
                   >
                     {submitting
                       ? editing
