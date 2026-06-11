@@ -191,7 +191,7 @@ export default function OwnerBookingsPage() {
           </p>
         </div>
         <Link href="/owner/providers">
-          <Button type="primary" size="large" icon={<PlusOutlined />} className="!rounded-xl !bg-sky-600 hover:!bg-sky-500">
+          <Button type="primary" size="large" icon={<PlusOutlined />} className="!rounded-xl">
             New booking
           </Button>
         </Link>
