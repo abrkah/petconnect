@@ -62,45 +62,6 @@ function LogoIcon({ variant = "gradient" }: { variant?: "gradient" | "soft" }) {
   );
 }
 
-function headingFromPath(pathname: string): string {
-  const segments = pathname.split("/").filter(Boolean);
-  if (segments.length === 0) return "Dashboard";
-
-  const root = segments[0];
-  if ((root === "owner" || root === "provider") && segments.length === 1) {
-    return "Dashboard";
-  }
-
-  if (root === "owner") {
-    const page = segments[1];
-    if (page === "pets" && segments.length === 2) return "My Pets";
-    if (page === "pets" && segments.length >= 3) return "Pet profile";
-    if (page === "bookings") return "My Bookings";
-    if (page === "providers") return "Services";
-    if (page === "messages") return "Messages";
-    if (page === "profile") return "Profile";
-  }
-
-  if (root === "provider") {
-    const page = segments[1];
-    if (page === "bookings") return "Bookings";
-    if (page === "messages") return "Messages";
-    if (page === "profile") return "Profile";
-    if (page === "pets" && segments.length >= 3) return "Pet profile";
-  }
-
-  return segments
-    .slice(1)
-    .map((p) => {
-      if (/^[0-9a-f-]{36}$/i.test(p)) return "Details";
-      return p
-        .split("-")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-    })
-    .join(" · ");
-}
-
 const sidebarMenuClass =
   "!border-0 !bg-transparent !pt-1 " +
   "[&_.ant-menu-item]:!mx-3 [&_.ant-menu-item]:!rounded-xl " +
@@ -139,8 +100,14 @@ export default function PetConnectAppShell({
   );
   const activeKey = best ? [best.key] : [pathname];
 
-  const pageTitle = headingFromPath(pathname);
-  const roleLabel = brandBadge === "Pro" ? "Provider" : "Pet owner";
+  const roleLabel =
+    brandBadge === "Pro" || brandHref.startsWith("/provider")
+      ? "Provider"
+      : "Pet owner";
+  const headerSubtitle =
+    pathname === brandHref
+      ? "Overview and shortcuts for your workspace."
+      : "Manage your pet care workflow from here.";
 
   const sidebarMenu = (
     <Menu
@@ -253,20 +220,13 @@ export default function PetConnectAppShell({
             </div>
           </header>
 
-          <header className="sticky top-0 z-30 hidden min-h-[4.25rem] items-center justify-between gap-6 border-b border-slate-200/90 bg-white/90 px-6 shadow-sm backdrop-blur-md md:flex lg:px-8">
+          <header className="sticky top-0 z-30 hidden items-center justify-between gap-6 border-b border-slate-200/90 bg-white/90 px-3 py-3 shadow-sm backdrop-blur-md md:flex md:px-4">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-600">
-                <HomeIcon className="h-4 w-4" aria-hidden />
+              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-teal-600">
+                <HomeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 <span>{roleLabel}</span>
               </div>
-              <h1 className="mt-0.5 truncate text-xl font-bold tracking-tight text-slate-900 lg:text-2xl">
-                {pageTitle}
-              </h1>
-              <p className="mt-0.5 hidden text-sm text-slate-500 sm:block">
-                {pathname === brandHref
-                  ? "Overview and shortcuts for your workspace."
-                  : "Manage your pet care workflow from here."}
-              </p>
+              <p className="mt-0.5 text-sm text-slate-500">{headerSubtitle}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Link
@@ -317,8 +277,10 @@ export default function PetConnectAppShell({
             </div>
           </Drawer>
 
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-6 md:py-8 lg:px-8">
-            {children}
+          <main className="w-full flex-1 px-3 py-4 md:px-4 md:py-5">
+            <div className="dashboard-scope mx-auto w-full max-w-8xl">
+              {children}
+            </div>
           </main>
         </div>
       </div>
