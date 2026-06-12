@@ -14,10 +14,10 @@ import {
 import { LockOutlined, MailOutlined } from "@ant-design/icons";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { message } from "antd";
 import { motion } from "framer-motion";
 import { BoltIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { signupApi, type UserRole } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 import { SparklesIcon } from "@heroicons/react/24/solid";
 import MarketingNav from "@/components/MarketingNav";
 
@@ -46,7 +46,7 @@ export default function RegisterInner() {
     role: UserRole;
   }) => {
     if (values.password !== values.confirm) {
-      message.error("Passwords do not match");
+      notifyError("Passwords do not match");
       return;
     }
     try {
@@ -55,18 +55,10 @@ export default function RegisterInner() {
         password: values.password,
         role: values.role,
       });
-      message.success("Account created. Please sign in.");
+      notifySuccess("Account created successfully. Please sign in.");
       router.replace(`/login?role=${values.role}`);
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: unknown } } };
-      const m = err?.response?.data?.message;
-      message.error(
-        typeof m === "string"
-          ? m
-          : Array.isArray(m)
-            ? m.join(", ")
-            : "Registration failed",
-      );
+      notifyError(extractApiError(e, "Registration failed"));
     }
   };
 

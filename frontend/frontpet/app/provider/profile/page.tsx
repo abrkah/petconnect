@@ -8,16 +8,21 @@ import {
   InputNumber,
   Select,
   Button,
-  message,
   Space,
 } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { api } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 
 const services = [
   { value: "DOG_WALKING", label: "Dog walking" },
   { value: "VACCINATION", label: "Vaccination" },
   { value: "GENERAL_SERVICE", label: "General" },
+];
+
+const GENDER_OPTIONS = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
 ];
 
 const days = [
@@ -46,8 +51,8 @@ export default function ProviderProfilePage() {
           serviceType: data.serviceType,
           bio: data.bio,
         });
-      } catch {
-        message.error("Could not load profile");
+      } catch (err) {
+        notifyError(extractApiError(err, "Could not load profile"));
       }
     })();
   }, [form]);
@@ -55,9 +60,9 @@ export default function ProviderProfilePage() {
   const saveProfile = async (v: Record<string, unknown>) => {
     try {
       await api.patch("/provider/profile", v);
-      message.success("Profile saved");
-    } catch {
-      message.error("Save failed");
+      notifySuccess("Your profile was updated successfully");
+    } catch (err) {
+      notifyError(extractApiError(err, "Could not save profile"));
     }
   };
 
@@ -66,15 +71,15 @@ export default function ProviderProfilePage() {
   }) => {
     try {
       await api.put("/provider-availability/me", v);
-      message.success("Availability saved");
-    } catch {
-      message.error("Could not save availability");
+      notifySuccess("Weekly availability was saved");
+    } catch (err) {
+      notifyError(extractApiError(err, "Could not save availability"));
     }
   };
 
   return (
     <div className="space-y-6">
-      <Card title="Public profile">
+      <Card title="Public profile" className="rounded-2xl border-slate-200 shadow-sm">
         <Form layout="vertical" form={form} onFinish={saveProfile}>
           <Form.Item name="fullName" label="Name" rules={[{ required: true }]}>
             <Input />
@@ -86,7 +91,7 @@ export default function ProviderProfilePage() {
             <InputNumber min={0} className="w-full" />
           </Form.Item>
           <Form.Item name="gender" label="Gender" rules={[{ required: true }]}>
-            <Input />
+            <Select options={GENDER_OPTIONS} placeholder="Select gender" />
           </Form.Item>
           <Form.Item name="serviceType" label="Service" rules={[{ required: true }]}>
             <Select options={services} />
@@ -94,13 +99,13 @@ export default function ProviderProfilePage() {
           <Form.Item name="bio" label="Introduction">
             <Input.TextArea rows={3} />
           </Form.Item>
-          <Button type="primary" htmlType="submit">
+          <Button type="primary" htmlType="submit" className="!bg-teal-600">
             Save profile
           </Button>
         </Form>
       </Card>
 
-      <Card title="Weekly availability">
+      <Card title="Weekly availability" className="rounded-2xl border-slate-200 shadow-sm">
         <p className="text-slate-600 text-sm mb-4">
           Pet owners see these windows before they book. Replace all slots below.
         </p>
@@ -150,7 +155,7 @@ export default function ProviderProfilePage() {
               </div>
             )}
           </Form.List>
-          <Button type="primary" htmlType="submit" className="mt-4">
+          <Button type="primary" htmlType="submit" className="mt-4 !bg-teal-600">
             Save availability
           </Button>
         </Form>

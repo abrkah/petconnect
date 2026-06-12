@@ -22,6 +22,7 @@ export type AppShellMenuItem = {
   key: string;
   icon: ReactNode;
   label: ReactNode;
+  title?: string;
 };
 
 type Props = {
@@ -165,11 +166,13 @@ export default function PetConnectAppShell({
           <div className="relative border-b border-white/10">
             <Link
               href={brandHref}
-              className="flex items-center gap-3 px-5 py-5 text-lg font-semibold tracking-tight text-white no-underline transition hover:text-teal-100"
+              className="flex items-center gap-3 px-5 py-5 no-underline transition hover:opacity-90"
             >
               <LogoIcon variant="soft" />
               <span className="flex min-w-0 flex-col leading-tight">
-                <span className="truncate">{brandTitle}</span>
+                <span className="truncate text-lg font-bold tracking-tight !text-white">
+                  {brandTitle}
+                </span>
                 {brandBadge ? (
                   <span className="mt-1 w-fit rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-100 ring-1 ring-white/15">
                     {brandBadge}
@@ -232,7 +235,7 @@ export default function PetConnectAppShell({
               {brandHref === "/owner" ? (
                 <Link
                   href="/owner/providers"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/50 hover:text-teal-800"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium !text-slate-900 no-underline shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
                 >
                   Caregivers
                 </Link>
