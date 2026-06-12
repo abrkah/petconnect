@@ -506,7 +506,7 @@ export default function OwnerHomePage() {
                 type="primary"
                 size="small"
                 icon={<PlusOutlined />}
-                className="!rounded-xl !font-semibold"
+                className="!rounded-xl !px-4 !font-semibold"
               >
                 New booking
               </Button>
