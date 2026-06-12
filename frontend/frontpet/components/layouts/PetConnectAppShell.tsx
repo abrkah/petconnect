@@ -229,12 +229,14 @@ export default function PetConnectAppShell({
               <p className="mt-0.5 text-sm text-slate-500">{headerSubtitle}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/50 hover:text-teal-800"
-              >
-                Marketing site
-              </Link>
+              {brandHref === "/owner" ? (
+                <Link
+                  href="/owner/providers"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/50 hover:text-teal-800"
+                >
+                  Caregivers
+                </Link>
+              ) : null}
               {notificationBell ?? (
                 <button
                   type="button"
