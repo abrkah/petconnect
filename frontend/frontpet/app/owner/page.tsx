@@ -9,7 +9,6 @@ import {
   Spin,
   Empty,
   Space,
-  message,
   Tag,
   Skeleton,
 } from "antd";
@@ -28,6 +27,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { api } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 import { WeightLineChart } from "@/components/petconnect/WeightLineChart";
 import { serviceTypeIcon } from "@/lib/service-icons";
 import type { ColumnsType } from "antd/es/table";
@@ -111,8 +111,11 @@ export default function OwnerHomePage() {
 
         const firstId = petRes.data[0]?.id ?? null;
         setSelectedPetId(firstId);
-      } catch {
-        if (ok) setPets([]);
+      } catch (err) {
+        if (ok) {
+          setPets([]);
+          notifyError(extractApiError(err, "Could not load dashboard"));
+        }
       } finally {
         if (ok) setLoading(false);
       }
@@ -213,10 +216,10 @@ export default function OwnerHomePage() {
           onClick={async () => {
             try {
               await api.delete(`/bookings/${r.id}`);
-              message.success("Booking cancelled");
+              notifySuccess("Booking cancelled successfully");
               await reloadBookings();
-            } catch {
-              message.error("Could not cancel");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not cancel booking"));
             }
           }}
         >
@@ -506,7 +509,7 @@ export default function OwnerHomePage() {
                 type="primary"
                 size="small"
                 icon={<PlusOutlined />}
-                className="!rounded-xl !px-4 !font-semibold"
+                className="!rounded-xl !px-3 !font-semibold"
               >
                 New booking
               </Button>

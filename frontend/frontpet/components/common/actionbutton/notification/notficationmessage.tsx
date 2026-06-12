@@ -1,64 +1,86 @@
 import React from "react";
-import { notification as antdNotification } from "antd";
+import type { NotificationInstance } from "antd/es/notification/interface";
 import {
   CloseCircleFilled,
   InfoCircleFilled,
   CheckCircleFilled,
 } from "@ant-design/icons";
 
-antdNotification.config({
-  placement: "topRight",
-  duration: 3,
-  top: 0,
-});
-
 interface NotificationProps {
   message: string;
   description?: string;
 }
 
+let notificationApi: NotificationInstance | null = null;
+
+export function registerNotificationApi(api: NotificationInstance | null) {
+  notificationApi = api;
+}
+
+function showNotification(
+  type: "success" | "error" | "warning" | "info",
+  { message, description }: NotificationProps,
+  style: React.CSSProperties,
+  icon: React.ReactNode,
+) {
+  if (!notificationApi) return;
+  notificationApi[type]({
+    message,
+    description,
+    className: "notification",
+    style: {
+      margin: 0,
+      boxShadow: "0 8px 24px rgba(15, 23, 42, 0.12)",
+      ...style,
+    },
+    icon,
+  });
+}
+
 const NotificationMessage = {
-  error: ({ message, description }: NotificationProps) => {
-    antdNotification.error({
-      message,
-      description,
-      className: "notification",
-      style: {
+  error: (props: NotificationProps) => {
+    showNotification(
+      "error",
+      props,
+      {
         backgroundColor: "#fff1f0",
         border: "1px solid #ffa39e",
-        margin: 0,
-        boxShadow: "unset",
       },
-      icon: <CloseCircleFilled style={{ color: "#f5222e" }} />,
-    });
+      <CloseCircleFilled style={{ color: "#f5222e" }} />,
+    );
   },
-  warning: ({ message, description }: NotificationProps) => {
-    antdNotification.warning({
-      message,
-      description,
-      className: "notification",
-      style: {
+  warning: (props: NotificationProps) => {
+    showNotification(
+      "warning",
+      props,
+      {
         backgroundColor: "#fffbe6",
         border: "1px solid #ffe58f",
-        margin: 0,
-        boxShadow: "unset",
       },
-      icon: <InfoCircleFilled style={{ color: "#f9bf02" }} />,
-    });
+      <InfoCircleFilled style={{ color: "#f9bf02" }} />,
+    );
   },
-  success: ({ message, description }: NotificationProps) => {
-    antdNotification.success({
-      message,
-      description,
-      className: "notification",
-      style: {
-        backgroundColor: "#F6FFED",
-        border: "1px solid #B7EB8F",
-        margin: 0,
-        boxShadow: "unset",
+  success: (props: NotificationProps) => {
+    showNotification(
+      "success",
+      props,
+      {
+        backgroundColor: "#f0fdfa",
+        border: "1px solid #99f6e4",
       },
-      icon: <CheckCircleFilled style={{ color: "#52C51A" }} />,
-    });
+      <CheckCircleFilled style={{ color: "#0d9488" }} />,
+    );
+  },
+  info: (props: NotificationProps) => {
+    showNotification(
+      "info",
+      props,
+      {
+        backgroundColor: "#e6f4ff",
+        border: "1px solid #91caff",
+      },
+      <InfoCircleFilled style={{ color: "#1677ff" }} />,
+    );
   },
 };
 

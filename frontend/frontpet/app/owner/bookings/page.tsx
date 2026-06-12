@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Table, Button, message, Avatar, Tag, Space } from "antd";
+import { Table, Button, Avatar, Tag, Space } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import Link from "next/link";
 import dayjs from "dayjs";
 import { PlusOutlined } from "@ant-design/icons";
 import { api, petPhotoSrc } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 import {
   serviceTypeIcon,
   serviceTypeLabel,
@@ -54,8 +55,8 @@ export default function OwnerBookingsPage() {
       try {
         const { data } = await api.get<Booking[]>("/bookings/mine");
         setRows(data);
-      } catch {
-        message.error("Could not load bookings");
+      } catch (err) {
+        notifyError(extractApiError(err, "Could not load bookings"));
       } finally {
         setLoading(false);
       }
@@ -166,9 +167,9 @@ export default function OwnerBookingsPage() {
               try {
                 await api.delete(`/bookings/${r.id}`);
                 setRows((prev) => prev.filter((x) => x.id !== r.id));
-                message.success("Booking cancelled");
-              } catch {
-                message.error("Cancel failed");
+                notifySuccess("Booking cancelled successfully");
+              } catch (err) {
+                notifyError(extractApiError(err, "Could not cancel booking"));
               }
             }}
           >

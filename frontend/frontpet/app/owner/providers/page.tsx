@@ -12,11 +12,11 @@ import {
   Modal,
   Form,
   DatePicker,
-  message,
   Tag,
 } from "antd";
 import Link from "next/link";
 import { api } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 import dayjs from "dayjs";
 
 const { Title, Paragraph } = Typography;
@@ -52,7 +52,7 @@ export default function OwnerProvidersPage() {
   }, [search, serviceType, sort]);
 
   useEffect(() => {
-    load().catch(() => message.error("Could not load providers"));
+    load().catch(() => notifyError("Could not load providers"));
   }, [load]);
 
   const openBook = async (p: Provider) => {
@@ -176,10 +176,10 @@ export default function OwnerProvidersPage() {
                 endDate: (v.endDate as dayjs.Dayjs).format("YYYY-MM-DD"),
                 timeSlot: v.timeSlot,
               });
-              message.success("Booking requested");
+              notifySuccess("Booking requested successfully");
               setBookingOpen(false);
-            } catch {
-              message.error("Booking failed");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not create booking"));
             }
           }}
         >
@@ -231,10 +231,10 @@ export default function OwnerProvidersPage() {
                 petIds: v.petIds,
                 message: v.message || "",
               });
-              message.success("Hire request sent");
+              notifySuccess("Hire request sent successfully");
               setHireOpen(false);
-            } catch {
-              message.error("Request failed");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not send hire request"));
             }
           }}
         >

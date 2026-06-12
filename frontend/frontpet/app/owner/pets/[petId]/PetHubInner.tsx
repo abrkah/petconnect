@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
-  Layout,
   Menu,
   Card,
   Table,
@@ -13,7 +12,6 @@ import {
   Input,
   InputNumber,
   DatePicker,
-  message,
   Typography,
   Tag,
 } from "antd";
@@ -22,6 +20,7 @@ import dayjs from "dayjs";
 import Link from "next/link";
 import { ArrowRightOutlined } from "@ant-design/icons";
 import { api } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 import { WeightLineChart } from "@/components/petconnect/WeightLineChart";
 import {
   serviceTypeIcon,
@@ -29,7 +28,6 @@ import {
 } from "@/lib/service-icons";
 import type { ColumnsType } from "antd/es/table";
 
-const { Sider, Content } = Layout;
 const { Title } = Typography;
 
 type Vac = {
@@ -100,7 +98,7 @@ export default function OwnerPetHubInner() {
       const { data: pet } = await api.get<{ name: string }>(`/pets/${petId}`);
       setPetName(pet.name);
     } catch {
-      message.error("Pet not found");
+      notifyError("Pet not found");
     }
     try {
       const { data } = await api.get<Vac[]>(`/vaccination-record/pet/${petId}`);
@@ -190,10 +188,10 @@ export default function OwnerPetHubInner() {
           onClick={async () => {
             try {
               await api.delete(`/bookings/${r.id}`);
-              message.success("Booking cancelled");
+              notifySuccess("Booking cancelled successfully");
               loadAll();
-            } catch {
-              message.error("Could not cancel");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not cancel booking"));
             }
           }}
         >
@@ -204,21 +202,20 @@ export default function OwnerPetHubInner() {
   ];
 
   return (
-    <Layout className="bg-transparent min-h-[70vh]">
-      <Sider
-        width={220}
-        className="bg-white border border-slate-200 rounded-xl mr-4 hidden md:block"
-      >
-        <Menu
-          mode="inline"
-          selectedKeys={[tab]}
-          items={menuItems}
-          onClick={({ key }) => setTab(key)}
-          className="border-0 rounded-xl"
-        />
-      </Sider>
-      <Content>
-        <div className="md:hidden mb-4">
+    <div className="flex flex-col md:flex-row md:gap-4">
+      <aside className="hidden md:block md:w-[220px] md:shrink-0 md:self-start">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <Menu
+            mode="inline"
+            selectedKeys={[tab]}
+            items={menuItems}
+            onClick={({ key }) => setTab(key)}
+            className="!border-0"
+          />
+        </div>
+      </aside>
+      <div className="min-w-0 flex-1">
+        <div className="mb-4 md:hidden">
           <Menu
             mode="horizontal"
             selectedKeys={[tab]}
@@ -328,7 +325,7 @@ export default function OwnerPetHubInner() {
             </ul>
           </Card>
         )}
-      </Content>
+      </div>
 
       <Modal
         title="Add weight"
@@ -346,11 +343,11 @@ export default function OwnerPetHubInner() {
                 weight: v.weight,
                 recordDate: (v.recordDate as dayjs.Dayjs).format("YYYY-MM-DD"),
               });
-              message.success("Saved");
+              notifySuccess("Weight record saved successfully");
               setWeightOpen(false);
               loadAll();
-            } catch {
-              message.error("Failed");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not save weight record"));
             }
           }}
         >
@@ -391,11 +388,11 @@ export default function OwnerPetHubInner() {
                   ? (v.nextDueDate as dayjs.Dayjs).format("YYYY-MM-DD")
                   : undefined,
               });
-              message.success("Saved");
+              notifySuccess("Vaccination record saved successfully");
               setVacOpen(false);
               loadAll();
-            } catch {
-              message.error("Failed");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not save vaccination record"));
             }
           }}
         >
@@ -434,11 +431,11 @@ export default function OwnerPetHubInner() {
           onFinish={async (v) => {
             try {
               await api.post("/pet-notes", { petId, content: v.content });
-              message.success("Saved");
+              notifySuccess("Note saved successfully");
               setNoteOpen(false);
               loadAll();
-            } catch {
-              message.error("Failed");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not save note"));
             }
           }}
         >
@@ -454,6 +451,6 @@ export default function OwnerPetHubInner() {
           </Button>
         </Form>
       </Modal>
-    </Layout>
+    </div>
   );
 }
