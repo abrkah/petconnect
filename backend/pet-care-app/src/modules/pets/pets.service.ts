@@ -11,6 +11,10 @@ import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { OwnerProfile } from '../owner/entities/owner.entity';
 import { ProviderPetAssignment } from '../provider-pet-assignment/entities/provider-pet-assignment.entity';
+import { Booking } from '../bookings/entities/booking.entity';
+import { VaccinationRecord } from '../health/vaccination-record/entities/vaccination-record.entity';
+import { WeightRecord } from '../health/weight-record/entities/weight-record.entity';
+import { PetNote } from '../pet-notes/entities/pet-note.entity';
 import { FileService } from '../common/file.service';
 
 @Injectable()
@@ -43,16 +47,11 @@ export class PetsService {
     dto: CreatePetDto,
     photo?: Express.Multer.File,
   ) {
-    if (!photo) {
-      throw new BadRequestException(
-        'Pet photo is required. Upload an image file (JPEG, PNG, GIF, or WebP).',
-      );
-    }
     const owner = await this.ownerProfileFor(userId);
     const pet = this.petRepo.create({
       ...dto,
       owner,
-      photoUrl: this.photoUrlFromFile(photo),
+      photoUrl: photo ? this.photoUrlFromFile(photo) : undefined,
     });
     const saved = await this.petRepo.save(pet);
     return {
@@ -99,8 +98,18 @@ export class PetsService {
 
   async removeForOwner(userId: string, petId: string) {
     const pet = await this.findOneForOwner(userId, petId);
-    await this.petRepo.remove(pet);
-    return { deleted: true };
+    const name = pet.name;
+
+    await this.petRepo.manager.transaction(async (em) => {
+      await em.delete(Booking, { pet: { id: petId } });
+      await em.delete(VaccinationRecord, { pet: { id: petId } });
+      await em.delete(WeightRecord, { pet: { id: petId } });
+      await em.delete(PetNote, { pet: { id: petId } });
+      await em.delete(ProviderPetAssignment, { pet: { id: petId } });
+      await em.delete(Pet, { id: petId });
+    });
+
+    return { message: `${name} was deleted successfully`, deleted: true };
   }
 
   async findManagedForProvider(userId: string) {
