@@ -2,28 +2,47 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { message } from "antd";
+import { App } from "antd";
 import { FaLinkedin, FaGithub, FaTwitter } from "react-icons/fa";
 import { HeartIcon } from "@heroicons/react/24/solid";
 import { subscribeNewsletterApi } from "@/lib/petconnect-api";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+type Feedback = {
+  type: "success" | "info" | "error";
+  text: string;
+};
+
 const FooterComponent = () => {
+  const { message } = App.useApp();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+
+  const showFeedback = (next: Feedback) => {
+    setFeedback(next);
+    if (next.type === "success") {
+      message.success(next.text);
+    } else if (next.type === "info") {
+      message.info(next.text);
+    } else {
+      message.error(next.text);
+    }
+  };
 
   const handleSubscribe = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = email.trim();
+    setFeedback(null);
 
     if (!trimmed) {
-      message.warning("Enter your email address.");
+      showFeedback({ type: "error", text: "Enter your email address." });
       return;
     }
 
     if (!emailPattern.test(trimmed)) {
-      message.warning("Enter a valid email address.");
+      showFeedback({ type: "error", text: "Enter a valid email address." });
       return;
     }
 
@@ -31,13 +50,16 @@ const FooterComponent = () => {
     try {
       const result = await subscribeNewsletterApi(trimmed);
       if (result.alreadySubscribed) {
-        message.info(result.message);
+        showFeedback({ type: "info", text: result.message });
       } else {
-        message.success(result.message);
+        showFeedback({ type: "success", text: result.message });
         setEmail("");
       }
     } catch {
-      message.error("Could not subscribe right now. Please try again.");
+      showFeedback({
+        type: "error",
+        text: "Could not subscribe right now. Please try again.",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -216,6 +238,20 @@ const FooterComponent = () => {
                 {submitting ? "Sending email..." : "Subscribe"}
               </button>
             </form>
+            {feedback ? (
+              <p
+                role="status"
+                className={`mt-3 text-sm ${
+                  feedback.type === "success"
+                    ? "text-teal-400"
+                    : feedback.type === "info"
+                      ? "text-sky-400"
+                      : "text-rose-400"
+                }`}
+              >
+                {feedback.text}
+              </p>
+            ) : null}
           </div>
           <p className="text-center text-sm text-slate-600 lg:text-right">
             © {new Date().getFullYear()} PetConnect. All rights reserved.
