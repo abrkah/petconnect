@@ -562,8 +562,13 @@ async function seed() {
         ? {
             user: ou,
             fullName: 'Alex Rivera',
-            phoneNumber: '+1 (510) 555-0142',
+            phoneNumber: '+43 664 1234567',
             city: 'Vienna',
+            address: 'Neubaugasse 12, 1070 Wien',
+            emergencyContactName: 'Jordan Rivera',
+            emergencyContactPhone: '+43 664 7654321',
+            notes:
+              'Gate code #4821. Luna and Charlie are friendly; Max needs 5 min to warm up. Prefer morning visits Tue–Thu.',
             profileImage: SHOWCASE_OWNER_IMAGE,
           }
         : {
@@ -594,13 +599,13 @@ async function seed() {
         ? {
             user: pu,
             fullName: 'Dr. Maya Chen',
-            phoneNumber: '+1 (415) 555-0198',
+            phoneNumber: '+43 699 1122334',
             hourlyPayment: 42.5,
             gender: 'female',
             serviceType: ServiceType.VACCINATION,
             profileImage: SHOWCASE_PROVIDER_IMAGE,
             bio:
-              'Licensed veterinary technician offering in-home vaccinations, wellness checks, and gentle handling for anxious pets. 8+ years with cats and dogs in the Bay Area. Certified in fear-free handling. Serving Oakland, Berkeley, and San Francisco.',
+              'Licensed veterinary technician offering in-home vaccinations, wellness checks, and gentle handling for anxious pets. 8+ years with cats and dogs across Vienna and Lower Austria. Certified in fear-free handling. Mobile clinic — I come to you.',
           }
         : {
             user: pu,
@@ -674,7 +679,7 @@ async function seed() {
     if (petIdx < PETS_PER_OWNER) continue;
     const points =
       petIdx === PETS_PER_OWNER ? WEIGHT_POINTS_FIRST_PET : WEIGHT_POINTS_DEFAULT;
-    const baseKg = pets[petIdx].weight;
+    const baseKg = pets[petIdx].weight ?? 10;
 
     for (let m = 0; m < points; m++) {
       const monthsAgo = points - 1 - m;
