@@ -29,9 +29,17 @@ export class ProviderAvailabilityService {
     });
     if (!provider) throw new NotFoundException('Provider profile not found');
 
-    await this.repo.delete({ provider: { id: provider.id } });
+    const slots = dto.slots ?? [];
 
-    const rows = dto.slots.map((s) =>
+    await this.repo
+      .createQueryBuilder()
+      .delete()
+      .where('providerId = :providerId', { providerId: provider.id })
+      .execute();
+
+    if (slots.length === 0) return [];
+
+    const rows = slots.map((s) =>
       this.repo.create({
         provider,
         dayOfWeek: s.dayOfWeek,
@@ -39,7 +47,6 @@ export class ProviderAvailabilityService {
         endTime: s.endTime,
       }),
     );
-    if (rows.length === 0) return [];
     return this.repo.save(rows);
   }
 }
