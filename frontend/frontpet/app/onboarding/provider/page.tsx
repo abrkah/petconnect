@@ -14,6 +14,9 @@ import {
 import { useAuthenticationStore } from "@/app/utils/uistate/fetures/authentication";
 import { api } from "@/lib/petconnect-api";
 import { useEffect } from "react";
+import AustriaPhoneInput from "@/components/petconnect/AustriaPhoneInput";
+import { validateRequiredAustriaPhoneRule } from "@/lib/austria-phone";
+import { PROVIDER_GENDER_OPTIONS } from "@/lib/provider-gender";
 
 const { Title, Text } = Typography;
 
@@ -63,10 +66,10 @@ export default function OnboardProviderPage() {
           </Form.Item>
           <Form.Item
             name="phoneNumber"
-            label="Phone"
-            rules={[{ required: true }]}
+            label="Phone (Austria)"
+            rules={[{ validator: validateRequiredAustriaPhoneRule }]}
           >
-            <Input size="large" />
+            <AustriaPhoneInput size="large" />
           </Form.Item>
           <Form.Item
             name="hourlyPayment"
@@ -76,7 +79,11 @@ export default function OnboardProviderPage() {
             <InputNumber min={0} className="w-full" size="large" />
           </Form.Item>
           <Form.Item name="gender" label="Gender" rules={[{ required: true }]}>
-            <Input size="large" placeholder="How you identify" />
+            <Select
+              options={[...PROVIDER_GENDER_OPTIONS]}
+              size="large"
+              placeholder="Select gender"
+            />
           </Form.Item>
           <Form.Item
             name="serviceType"

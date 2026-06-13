@@ -5,6 +5,8 @@ import { Button, Card, Form, Input, Typography, message } from "antd";
 import { useAuthenticationStore } from "@/app/utils/uistate/fetures/authentication";
 import { api } from "@/lib/petconnect-api";
 import { useEffect, useState } from "react";
+import AustriaPhoneInput from "@/components/petconnect/AustriaPhoneInput";
+import { validateRequiredAustriaPhoneRule } from "@/lib/austria-phone";
 
 const { Title, Text } = Typography;
 
@@ -68,10 +70,10 @@ export default function OnboardOwnerPage() {
           </Form.Item>
           <Form.Item
             name="phoneNumber"
-            label="Phone"
-            rules={[{ required: true }]}
+            label="Phone (Austria)"
+            rules={[{ validator: validateRequiredAustriaPhoneRule }]}
           >
-            <Input size="large" />
+            <AustriaPhoneInput size="large" />
           </Form.Item>
           <Button
             type="primary"

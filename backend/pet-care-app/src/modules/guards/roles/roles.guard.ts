@@ -1,7 +1,12 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../../auth/decorator/roles.decorators';
-import { UserRole } from '../../user/entities/user.entity'; 
+import { UserRole } from '../../user/entities/user.entity';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -19,9 +24,28 @@ export class RolesGuard implements CanActivate {
     const user = request.user;
 
     if (!user || !user.role) {
-      return false;
+      throw new ForbiddenException('Authentication required');
     }
 
-    return requiredRoles.includes(user.role);
+    if (requiredRoles.includes(user.role)) {
+      return true;
+    }
+
+    if (
+      requiredRoles.length === 1 &&
+      requiredRoles[0] === UserRole.PROVIDER
+    ) {
+      throw new ForbiddenException(
+        'This action is only available to service providers. Please sign in as a service provider.',
+      );
+    }
+
+    if (requiredRoles.length === 1 && requiredRoles[0] === UserRole.OWNER) {
+      throw new ForbiddenException(
+        'This action is only available to pet owners. Please sign in as a pet owner.',
+      );
+    }
+
+    throw new ForbiddenException('You do not have permission to access this resource.');
   }
 }
