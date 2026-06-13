@@ -320,7 +320,7 @@ export default function OwnerBookingsPage() {
         onCancel={submitting ? undefined : closeEdit}
         footer={null}
         width={480}
-        destroyOnClose
+        destroyOnHidden
       >
         {editing ? (
           <Form
