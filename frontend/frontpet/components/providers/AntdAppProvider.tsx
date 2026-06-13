@@ -29,7 +29,7 @@ export default function AntdAppProvider({
         },
       }}
     >
-      <App notification={{ placement: "topRight", top: 24, duration: 4 }}>
+      <App message={{ top: 80, duration: 4 }} notification={{ placement: "topRight", top: 24, duration: 4 }}>
         <NotificationRegistrar />
         {children}
       </App>
