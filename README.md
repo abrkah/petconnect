@@ -148,7 +148,6 @@ docker compose down -v
 docker compose up --build
 docker compose --profile seed run --rm seed
 ```
-
 ---
 
 ## Project layout
