@@ -8,6 +8,7 @@ import {
   Delete,
   UseInterceptors,
   UploadedFile,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PetsService } from './pets.service';
@@ -48,13 +49,19 @@ export class PetsController {
 
   @Get('assigned/:id')
   @Roles(UserRole.PROVIDER)
-  findAssigned(@AuthUser() user: CurrentUser, @Param('id') id: string) {
+  findAssigned(
+    @AuthUser() user: CurrentUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.petsService.getAssignedPet(user.id, id);
   }
 
   @Get(':id')
   @Roles(UserRole.OWNER)
-  findOne(@AuthUser() user: CurrentUser, @Param('id') id: string) {
+  findOne(
+    @AuthUser() user: CurrentUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.petsService.findOneForOwner(user.id, id);
   }
 
@@ -63,7 +70,7 @@ export class PetsController {
   @UseInterceptors(FileInterceptor('photo', petPhotoUploadOptions))
   update(
     @AuthUser() user: CurrentUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePetDto,
     @UploadedFile() photo?: Express.Multer.File,
   ) {
@@ -72,7 +79,10 @@ export class PetsController {
 
   @Delete(':id')
   @Roles(UserRole.OWNER)
-  remove(@AuthUser() user: CurrentUser, @Param('id') id: string) {
+  remove(
+    @AuthUser() user: CurrentUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.petsService.removeForOwner(user.id, id);
   }
 }

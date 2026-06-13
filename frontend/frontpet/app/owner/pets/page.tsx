@@ -195,22 +195,27 @@ export default function OwnerPetsPage() {
       okType: "danger",
       cancelText: "Cancel",
       centered: true,
-      onOk: async () => {
+      zIndex: 1100,
+      onOk: () => {
         setDeletingId(pet.id);
-        try {
-          const { data } = await api.delete<{ message?: string }>(
-            `/pets/${pet.id}`,
-          );
-          notifySuccess(data.message ?? `${pet.name} was deleted successfully`);
-          if (editing?.id === pet.id) {
-            resetModal();
-          }
-          await load();
-        } catch (err: unknown) {
-          notifyError(extractApiError(err, "Could not delete pet"));
-        } finally {
-          setDeletingId(null);
-        }
+        return api
+          .delete<{ message?: string }>(`/pets/${pet.id}`)
+          .then(({ data }) => {
+            notifySuccess(
+              data.message ?? `${pet.name} was deleted successfully`,
+            );
+            if (editing?.id === pet.id) {
+              resetModal();
+            }
+            return load();
+          })
+          .catch((err: unknown) => {
+            notifyError(extractApiError(err, "Could not delete pet"));
+            return Promise.reject(err);
+          })
+          .finally(() => {
+            setDeletingId(null);
+          });
       },
     });
   };
@@ -603,6 +608,7 @@ export default function OwnerPetsPage() {
                   danger
                   block
                   size="large"
+                  type="button"
                   icon={<DeleteOutlined />}
                   loading={deletingId === editing.id}
                   disabled={

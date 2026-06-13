@@ -13,6 +13,7 @@ import { OwnerProfile } from '../owner/entities/owner.entity';
 import { ProviderProfile } from '../provider/entities/provider.entity';
 import { Pet } from '../pets/entities/pet.entity';
 import { UserRole } from '../user/entities/user.entity';
+import { HireRequestsService } from '../hire-requests/hire-requests.service';
 
 @Injectable()
 export class BookingsService {
@@ -25,6 +26,7 @@ export class BookingsService {
     private readonly providerRepo: Repository<ProviderProfile>,
     @InjectRepository(Pet)
     private readonly petRepo: Repository<Pet>,
+    private readonly hireRequestsService: HireRequestsService,
   ) {}
 
   private async ownerEntity(userId: string) {
@@ -52,6 +54,8 @@ export class BookingsService {
       where: { id: dto.providerId },
     });
     if (!provider) throw new NotFoundException('Provider not found');
+
+    await this.hireRequestsService.requireApprovedHire(userId, dto.providerId);
 
     const booking = this.bookingRepo.create({
       owner,
@@ -91,7 +95,7 @@ export class BookingsService {
   ) {
     const booking = await this.bookingRepo.findOne({
       where: { id },
-      relations: ['owner', 'owner.user', 'provider', 'provider.user'],
+      relations: ['owner', 'owner.user', 'provider', 'provider.user', 'pet'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
 
@@ -108,8 +112,39 @@ export class BookingsService {
       }
     }
 
-    Object.assign(booking, dto);
-    return this.bookingRepo.save(booking);
+    const { petId, providerId, serviceType, startDate, endDate, timeSlot, status } =
+      dto;
+
+    if (petId) {
+      const pet = await this.petRepo.findOne({
+        where: { id: petId, owner: { id: booking.owner.id } },
+      });
+      if (!pet) throw new NotFoundException('Pet not found');
+      booking.pet = pet;
+    }
+
+    if (providerId) {
+      const provider = await this.providerRepo.findOne({
+        where: { id: providerId },
+      });
+      if (!provider) throw new NotFoundException('Provider not found');
+      if (role === UserRole.OWNER) {
+        await this.hireRequestsService.requireApprovedHire(userId, providerId);
+      }
+      booking.provider = provider;
+    }
+
+    if (serviceType != null) booking.serviceType = serviceType;
+    if (startDate != null) booking.startDate = startDate;
+    if (endDate != null) booking.endDate = endDate;
+    if (timeSlot !== undefined) booking.timeSlot = timeSlot ?? null;
+    if (status != null) booking.status = status;
+
+    const saved = await this.bookingRepo.save(booking);
+    return {
+      message: 'Booking updated successfully',
+      booking: saved,
+    };
   }
 
   async remove(userId: string, role: UserRole, id: string) {

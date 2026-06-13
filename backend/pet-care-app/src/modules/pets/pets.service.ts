@@ -5,16 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Pet } from './entities/pet.entity';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
 import { OwnerProfile } from '../owner/entities/owner.entity';
 import { ProviderPetAssignment } from '../provider-pet-assignment/entities/provider-pet-assignment.entity';
-import { Booking } from '../bookings/entities/booking.entity';
-import { VaccinationRecord } from '../health/vaccination-record/entities/vaccination-record.entity';
-import { WeightRecord } from '../health/weight-record/entities/weight-record.entity';
-import { PetNote } from '../pet-notes/entities/pet-note.entity';
 import { FileService } from '../common/file.service';
 
 @Injectable()
@@ -101,15 +97,25 @@ export class PetsService {
     const name = pet.name;
 
     await this.petRepo.manager.transaction(async (em) => {
-      await em.delete(Booking, { pet: { id: petId } });
-      await em.delete(VaccinationRecord, { pet: { id: petId } });
-      await em.delete(WeightRecord, { pet: { id: petId } });
-      await em.delete(PetNote, { pet: { id: petId } });
-      await em.delete(ProviderPetAssignment, { pet: { id: petId } });
+      await this.deleteRelatedRecordsForPet(em, petId);
       await em.delete(Pet, { id: petId });
     });
 
     return { message: `${name} was deleted successfully`, deleted: true };
+  }
+
+  private async deleteRelatedRecordsForPet(em: EntityManager, petId: string) {
+    const tables = [
+      'booking',
+      'vaccination_record',
+      'weight_record',
+      'pet_note',
+      'provider_pet_assignment',
+    ];
+
+    for (const table of tables) {
+      await em.query(`DELETE FROM "${table}" WHERE "petId" = $1`, [petId]);
+    }
   }
 
   async findManagedForProvider(userId: string) {

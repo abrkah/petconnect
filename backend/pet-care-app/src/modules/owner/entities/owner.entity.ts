@@ -25,8 +25,8 @@ export class OwnerProfile {
   @Column()
   fullName!: string;
 
-  @Column()
-  phoneNumber!: string;
+  @Column({ type: 'varchar', nullable: true })
+  phoneNumber!: string | null;
 
   @Column({ nullable: true })
   profileImage!: string;

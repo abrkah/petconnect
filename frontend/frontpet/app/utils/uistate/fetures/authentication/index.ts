@@ -101,6 +101,7 @@ export const useAuthenticationStore = create<StoreState>()(
           token: state.token,
           userId: state.userId,
           userData: state.userData,
+          loggedUserRole: state.loggedUserRole,
           activeCalendar: state.activeCalendar,
           isFirstLogin: state.isFirstLogin,
         }),
