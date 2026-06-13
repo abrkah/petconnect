@@ -2,16 +2,44 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { message } from "antd";
 import { FaLinkedin, FaGithub, FaTwitter } from "react-icons/fa";
 import { HeartIcon } from "@heroicons/react/24/solid";
+import { subscribeNewsletterApi } from "@/lib/petconnect-api";
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const FooterComponent = () => {
   const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubscribe = () => {
-    if (email) {
-      alert(`Subscribed with ${email}`);
+  const handleSubscribe = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = email.trim();
+
+    if (!trimmed) {
+      message.warning("Enter your email address.");
+      return;
+    }
+
+    if (!emailPattern.test(trimmed)) {
+      message.warning("Enter a valid email address.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await subscribeNewsletterApi(trimmed);
+      if (result.alreadySubscribed) {
+        message.info(result.message);
+      } else {
+        message.success(result.message);
+      }
       setEmail("");
+    } catch {
+      message.error("Could not subscribe right now. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -166,22 +194,27 @@ const FooterComponent = () => {
             <p className="mt-1 text-sm text-slate-500">
               Occasional notes on new features—no spam.
             </p>
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+            <form
+              onSubmit={handleSubscribe}
+              className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-stretch"
+            >
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
-                className="min-h-11 flex-1 rounded-xl border border-slate-700 bg-slate-900 px-4 text-slate-100 placeholder:text-slate-500 outline-none ring-teal-500/0 transition focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/30"
+                disabled={submitting}
+                autoComplete="email"
+                className="min-h-11 flex-1 rounded-xl border border-slate-700 bg-slate-900 px-4 text-slate-100 placeholder:text-slate-500 outline-none ring-teal-500/0 transition focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/30 disabled:opacity-60"
               />
               <button
-                type="button"
-                onClick={handleSubscribe}
-                className="min-h-11 shrink-0 rounded-xl bg-teal-500 px-6 font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:bg-teal-400"
+                type="submit"
+                disabled={submitting}
+                className="min-h-11 shrink-0 rounded-xl bg-teal-500 px-6 font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Subscribe
+                {submitting ? "Subscribing..." : "Subscribe"}
               </button>
-            </div>
+            </form>
           </div>
           <p className="text-center text-sm text-slate-600 lg:text-right">
             © {new Date().getFullYear()} PetConnect. All rights reserved.
