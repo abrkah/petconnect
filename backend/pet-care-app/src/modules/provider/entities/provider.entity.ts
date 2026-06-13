@@ -27,8 +27,8 @@ export class ProviderProfile {
   @Column()
   fullName!: string;
 
-  @Column()
-  phoneNumber!: string;
+  @Column({ type: 'varchar', nullable: true })
+  phoneNumber!: string | null;
 
   @Column('decimal')
   hourlyPayment!: number;

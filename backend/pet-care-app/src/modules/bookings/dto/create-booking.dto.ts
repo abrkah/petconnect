@@ -28,3 +28,4 @@ export class CreateBookingDto {
   @IsString()
   timeSlot?: string;
 }
+12

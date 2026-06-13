@@ -9,7 +9,6 @@ import {
   Spin,
   Empty,
   Space,
-  message,
   Tag,
   Skeleton,
 } from "antd";
@@ -28,6 +27,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { api } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 import { WeightLineChart } from "@/components/petconnect/WeightLineChart";
 import { serviceTypeIcon } from "@/lib/service-icons";
 import type { ColumnsType } from "antd/es/table";
@@ -111,8 +111,11 @@ export default function OwnerHomePage() {
 
         const firstId = petRes.data[0]?.id ?? null;
         setSelectedPetId(firstId);
-      } catch {
-        if (ok) setPets([]);
+      } catch (err) {
+        if (ok) {
+          setPets([]);
+          notifyError(extractApiError(err, "Could not load dashboard"));
+        }
       } finally {
         if (ok) setLoading(false);
       }
@@ -213,10 +216,10 @@ export default function OwnerHomePage() {
           onClick={async () => {
             try {
               await api.delete(`/bookings/${r.id}`);
-              message.success("Booking cancelled");
+              notifySuccess("Booking cancelled successfully");
               await reloadBookings();
-            } catch {
-              message.error("Could not cancel");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not cancel booking"));
             }
           }}
         >
@@ -247,7 +250,7 @@ export default function OwnerHomePage() {
     <div className="space-y-8 pb-4">
       {/* Hero */}
       <section
-        className={`relative overflow-hidden rounded-3xl border border-teal-200/40 bg-gradient-to-br from-teal-600 via-teal-700 to-slate-900 px-6 py-8 text-white shadow-xl shadow-teal-900/25 sm:px-8 sm:py-10`}
+        className={ `relative overflow-hidden rounded-3xl border border-teal-200/40 bg-gradient-to-br from-teal-600 via-teal-700 to-slate-900 px-6 py-8 text-white shadow-xl shadow-teal-900/25 sm:px-8 sm:py-10`}
       >
         <div
           className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/25 blur-3xl"
@@ -506,7 +509,7 @@ export default function OwnerHomePage() {
                 type="primary"
                 size="small"
                 icon={<PlusOutlined />}
-                className="!rounded-xl !font-semibold"
+                className="!rounded-xl !px-3 !font-semibold"
               >
                 New booking
               </Button>

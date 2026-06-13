@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Pet } from './entities/pet.entity';
 import { CreatePetDto } from './dto/create-pet.dto';
 import { UpdatePetDto } from './dto/update-pet.dto';
@@ -43,16 +43,11 @@ export class PetsService {
     dto: CreatePetDto,
     photo?: Express.Multer.File,
   ) {
-    if (!photo) {
-      throw new BadRequestException(
-        'Pet photo is required. Upload an image file (JPEG, PNG, GIF, or WebP).',
-      );
-    }
     const owner = await this.ownerProfileFor(userId);
     const pet = this.petRepo.create({
       ...dto,
       owner,
-      photoUrl: this.photoUrlFromFile(photo),
+      photoUrl: photo ? this.photoUrlFromFile(photo) : undefined,
     });
     const saved = await this.petRepo.save(pet);
     return {
@@ -99,8 +94,28 @@ export class PetsService {
 
   async removeForOwner(userId: string, petId: string) {
     const pet = await this.findOneForOwner(userId, petId);
-    await this.petRepo.remove(pet);
-    return { deleted: true };
+    const name = pet.name;
+
+    await this.petRepo.manager.transaction(async (em) => {
+      await this.deleteRelatedRecordsForPet(em, petId);
+      await em.delete(Pet, { id: petId });
+    });
+
+    return { message: `${name} was deleted successfully`, deleted: true };
+  }
+
+  private async deleteRelatedRecordsForPet(em: EntityManager, petId: string) {
+    const tables = [
+      'booking',
+      'vaccination_record',
+      'weight_record',
+      'pet_note',
+      'provider_pet_assignment',
+    ];
+
+    for (const table of tables) {
+      await em.query(`DELETE FROM "${table}" WHERE "petId" = $1`, [petId]);
+    }
   }
 
   async findManagedForProvider(userId: string) {

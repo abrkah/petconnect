@@ -22,6 +22,7 @@ export type AppShellMenuItem = {
   key: string;
   icon: ReactNode;
   label: ReactNode;
+  title?: string;
 };
 
 type Props = {
@@ -62,45 +63,6 @@ function LogoIcon({ variant = "gradient" }: { variant?: "gradient" | "soft" }) {
   );
 }
 
-function headingFromPath(pathname: string): string {
-  const segments = pathname.split("/").filter(Boolean);
-  if (segments.length === 0) return "Dashboard";
-
-  const root = segments[0];
-  if ((root === "owner" || root === "provider") && segments.length === 1) {
-    return "Dashboard";
-  }
-
-  if (root === "owner") {
-    const page = segments[1];
-    if (page === "pets" && segments.length === 2) return "My Pets";
-    if (page === "pets" && segments.length >= 3) return "Pet profile";
-    if (page === "bookings") return "My Bookings";
-    if (page === "providers") return "Services";
-    if (page === "messages") return "Messages";
-    if (page === "profile") return "Profile";
-  }
-
-  if (root === "provider") {
-    const page = segments[1];
-    if (page === "bookings") return "Bookings";
-    if (page === "messages") return "Messages";
-    if (page === "profile") return "Profile";
-    if (page === "pets" && segments.length >= 3) return "Pet profile";
-  }
-
-  return segments
-    .slice(1)
-    .map((p) => {
-      if (/^[0-9a-f-]{36}$/i.test(p)) return "Details";
-      return p
-        .split("-")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" ");
-    })
-    .join(" · ");
-}
-
 const sidebarMenuClass =
   "!border-0 !bg-transparent !pt-1 " +
   "[&_.ant-menu-item]:!mx-3 [&_.ant-menu-item]:!rounded-xl " +
@@ -139,8 +101,14 @@ export default function PetConnectAppShell({
   );
   const activeKey = best ? [best.key] : [pathname];
 
-  const pageTitle = headingFromPath(pathname);
-  const roleLabel = brandBadge === "Pro" ? "Provider" : "Pet owner";
+  const roleLabel =
+    brandBadge === "Pro" || brandHref.startsWith("/provider")
+      ? "Provider"
+      : "Pet owner";
+  const headerSubtitle =
+    pathname === brandHref
+      ? "Overview and shortcuts for your workspace."
+      : "Manage your pet care workflow from here.";
 
   const sidebarMenu = (
     <Menu
@@ -198,11 +166,13 @@ export default function PetConnectAppShell({
           <div className="relative border-b border-white/10">
             <Link
               href={brandHref}
-              className="flex items-center gap-3 px-5 py-5 text-lg font-semibold tracking-tight text-white no-underline transition hover:text-teal-100"
+              className="flex items-center gap-3 px-5 py-5 no-underline transition hover:opacity-90"
             >
               <LogoIcon variant="soft" />
               <span className="flex min-w-0 flex-col leading-tight">
-                <span className="truncate">{brandTitle}</span>
+                <span className="truncate text-lg font-bold tracking-tight !text-white">
+                  {brandTitle}
+                </span>
                 {brandBadge ? (
                   <span className="mt-1 w-fit rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-100 ring-1 ring-white/15">
                     {brandBadge}
@@ -253,28 +223,23 @@ export default function PetConnectAppShell({
             </div>
           </header>
 
-          <header className="sticky top-0 z-30 hidden min-h-[4.25rem] items-center justify-between gap-6 border-b border-slate-200/90 bg-white/90 px-6 shadow-sm backdrop-blur-md md:flex lg:px-8">
+          <header className="sticky top-0 z-30 hidden items-center justify-between gap-6 border-b border-slate-200/90 bg-white/90 px-3 py-3 shadow-sm backdrop-blur-md md:flex md:px-4">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-600">
-                <HomeIcon className="h-4 w-4" aria-hidden />
+              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-teal-600">
+                <HomeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 <span>{roleLabel}</span>
               </div>
-              <h1 className="mt-0.5 truncate text-xl font-bold tracking-tight text-slate-900 lg:text-2xl">
-                {pageTitle}
-              </h1>
-              <p className="mt-0.5 hidden text-sm text-slate-500 sm:block">
-                {pathname === brandHref
-                  ? "Overview and shortcuts for your workspace."
-                  : "Manage your pet care workflow from here."}
-              </p>
+              <p className="mt-0.5 text-sm text-slate-500">{headerSubtitle}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-teal-200 hover:bg-teal-50/50 hover:text-teal-800"
-              >
-                Marketing site
-              </Link>
+              {brandHref === "/owner" ? (
+                <Link
+                  href="/owner/providers"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium !text-slate-900 no-underline shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  Caregivers
+                </Link>
+              ) : null}
               {notificationBell ?? (
                 <button
                   type="button"
@@ -317,8 +282,10 @@ export default function PetConnectAppShell({
             </div>
           </Drawer>
 
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-6 md:py-8 lg:px-8">
-            {children}
+          <main className="w-full flex-1 px-3 py-4 md:px-4 md:py-5">
+            <div className="dashboard-scope mx-auto w-full max-w-8xl">
+              {children}
+            </div>
           </main>
         </div>
       </div>

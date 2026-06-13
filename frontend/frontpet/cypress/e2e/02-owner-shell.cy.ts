@@ -26,8 +26,8 @@ describe("Owner app shell & navigation", () => {
     nav(/profile/i, "/owner/profile");
   });
 
-  it("shows notification bell and marketing link in header", () => {
-    cy.contains("a", "Marketing site").should("be.visible");
+  it("shows notification bell and services link in header", () => {
+    cy.contains("a", "Services").should("be.visible");
     cy.get('button[aria-label*="otification"]').should("exist");
   });
 

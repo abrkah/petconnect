@@ -1,12 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Table, Button, message, Avatar, Tag, Space } from "antd";
+import { useCallback, useEffect, useState } from "react";
+import {
+  Table,
+  Button,
+  Avatar,
+  Tag,
+  Space,
+  Modal,
+  Form,
+  Select,
+  DatePicker,
+  Input,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import Link from "next/link";
 import dayjs from "dayjs";
 import { PlusOutlined } from "@ant-design/icons";
 import { api, petPhotoSrc } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 import {
   serviceTypeIcon,
   serviceTypeLabel,
@@ -19,9 +31,17 @@ type Booking = {
   endDate: string;
   timeSlot?: string | null;
   serviceType: string;
-  provider: { fullName: string };
+  provider: { id: string; fullName: string };
   pet: { id: string; name: string; photoUrl?: string | null };
 };
+
+type PetOption = { id: string; name: string };
+
+const SERVICE_OPTIONS = [
+  { value: "DOG_WALKING", label: "Dog walking" },
+  { value: "VACCINATION", label: "Vaccination" },
+  { value: "GENERAL_SERVICE", label: "General" },
+];
 
 function statusDisplay(status: string) {
   const s = status?.toUpperCase() || "";
@@ -36,6 +56,11 @@ function statusDisplay(status: string) {
   return { color: "default", label: status };
 }
 
+function canEditBooking(status: string) {
+  const s = status?.toUpperCase() || "";
+  return !s.includes("CANCEL") && !s.includes("COMPLET") && !s.includes("DONE");
+}
+
 function providerInitials(name: string) {
   return name
     .split(/\s+/)
@@ -48,19 +73,93 @@ function providerInitials(name: string) {
 export default function OwnerBookingsPage() {
   const [rows, setRows] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pets, setPets] = useState<PetOption[]>([]);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState<Booking | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [form] = Form.useForm();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get<Booking[]>("/bookings/mine");
+      setRows(data);
+    } catch (err) {
+      notifyError(extractApiError(err, "Could not load bookings"));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get<Booking[]>("/bookings/mine");
-        setRows(data);
-      } catch {
-        message.error("Could not load bookings");
-      } finally {
-        setLoading(false);
+    load();
+  }, [load]);
+
+  const openEdit = async (booking: Booking) => {
+    if (!canEditBooking(booking.status)) {
+      notifyError("This booking can no longer be edited.");
+      return;
+    }
+
+    try {
+      if (pets.length === 0) {
+        const { data } = await api.get<PetOption[]>("/pets/mine");
+        setPets(data);
       }
-    })();
-  }, []);
+    } catch (err) {
+      notifyError(extractApiError(err, "Could not load pets"));
+      return;
+    }
+
+    setEditing(booking);
+    form.setFieldsValue({
+      petId: booking.pet.id,
+      serviceType: booking.serviceType,
+      startDate: dayjs(booking.startDate),
+      endDate: dayjs(booking.endDate),
+      timeSlot: booking.timeSlot?.trim() || undefined,
+    });
+    setEditOpen(true);
+  };
+
+  const closeEdit = () => {
+    setEditOpen(false);
+    setEditing(null);
+    form.resetFields();
+  };
+
+  const saveEdit = async (values: {
+    petId: string;
+    serviceType: string;
+    startDate: dayjs.Dayjs;
+    endDate: dayjs.Dayjs;
+    timeSlot?: string;
+  }) => {
+    if (!editing) return;
+
+    setSubmitting(true);
+    try {
+      const { data } = await api.patch<{ message?: string; booking?: Booking }>(
+        `/bookings/${editing.id}`,
+        {
+          petId: values.petId,
+          providerId: editing.provider.id,
+          serviceType: values.serviceType,
+          startDate: values.startDate.format("YYYY-MM-DD"),
+          endDate: values.endDate.format("YYYY-MM-DD"),
+          timeSlot: values.timeSlot?.trim() || undefined,
+        },
+      );
+
+      notifySuccess(data.message ?? "Booking updated successfully");
+      closeEdit();
+      await load();
+    } catch (err) {
+      notifyError(extractApiError(err, "Could not update booking"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const cols: ColumnsType<Booking> = [
     {
@@ -86,7 +185,7 @@ export default function OwnerBookingsPage() {
           {r.pet.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={petPhotoSrc(r.pet.photoUrl)}
+              src={petPhotoSrc(r.pet.photoUrl) ?? ""}
               alt=""
               className="h-9 w-9 rounded-lg object-cover ring-1 ring-slate-200"
             />
@@ -154,11 +253,15 @@ export default function OwnerBookingsPage() {
       width: 160,
       render: (_, r) => (
         <Space>
-          <Link href={`/owner/pets/${r.pet.id}?tab=bookings`}>
-            <Button type="default" size="small" className="text-teal-700">
-              Edit
-            </Button>
-          </Link>
+          <Button
+            type="default"
+            size="small"
+            className="text-teal-700"
+            disabled={!canEditBooking(r.status)}
+            onClick={() => openEdit(r)}
+          >
+            Edit
+          </Button>
           <Button
             danger
             size="small"
@@ -166,9 +269,9 @@ export default function OwnerBookingsPage() {
               try {
                 await api.delete(`/bookings/${r.id}`);
                 setRows((prev) => prev.filter((x) => x.id !== r.id));
-                message.success("Booking cancelled");
-              } catch {
-                message.error("Cancel failed");
+                notifySuccess("Booking cancelled successfully");
+              } catch (err) {
+                notifyError(extractApiError(err, "Could not cancel booking"));
               }
             }}
           >
@@ -191,7 +294,7 @@ export default function OwnerBookingsPage() {
           </p>
         </div>
         <Link href="/owner/providers">
-          <Button type="primary" size="large" icon={<PlusOutlined />} className="!rounded-xl !bg-sky-600 hover:!bg-sky-500">
+          <Button type="primary" size="large" icon={<PlusOutlined />} className="!rounded-xl">
             New booking
           </Button>
         </Link>
@@ -210,6 +313,60 @@ export default function OwnerBookingsPage() {
           className="[&_.ant-table-thead>tr>th]:!bg-slate-100 [&_.ant-table-thead>tr>th]:!text-slate-700 [&_.ant-table-thead>tr>th]:!font-semibold"
         />
       </div>
+
+      <Modal
+        title={editing ? `Edit booking — ${editing.provider.fullName}` : "Edit booking"}
+        open={editOpen}
+        onCancel={submitting ? undefined : closeEdit}
+        footer={null}
+        width={480}
+        destroyOnClose
+      >
+        {editing ? (
+          <Form
+            form={form}
+            layout="vertical"
+            disabled={submitting}
+            onFinish={saveEdit}
+          >
+            <Form.Item label="Provider">
+              <Input value={editing.provider.fullName} disabled />
+            </Form.Item>
+            <Form.Item name="petId" label="Pet" rules={[{ required: true }]}>
+              <Select
+                options={pets.map((p) => ({ value: p.id, label: p.name }))}
+              />
+            </Form.Item>
+            <Form.Item
+              name="serviceType"
+              label="Service"
+              rules={[{ required: true }]}
+            >
+              <Select options={SERVICE_OPTIONS} />
+            </Form.Item>
+            <Form.Item
+              name="startDate"
+              label="Start date"
+              rules={[{ required: true }]}
+            >
+              <DatePicker className="w-full" />
+            </Form.Item>
+            <Form.Item
+              name="endDate"
+              label="End date"
+              rules={[{ required: true }]}
+            >
+              <DatePicker className="w-full" />
+            </Form.Item>
+            <Form.Item name="timeSlot" label="Time (optional)">
+              <Input placeholder="e.g. 09:00" />
+            </Form.Item>
+            <Button type="primary" htmlType="submit" block loading={submitting}>
+              Save changes
+            </Button>
+          </Form>
+        ) : null}
+      </Modal>
     </div>
   );
 }

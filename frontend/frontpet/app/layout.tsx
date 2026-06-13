@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./provider";
 import ReactQueryProvider from "@/components/providers/reactQueryProvider";
+import AntdAppProvider from "@/components/providers/AntdAppProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,9 +35,11 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <div className="flex flex-col min-h-screen">
-              <main>{children}</main>
-            </div>
+            <AntdAppProvider>
+              <div className="flex flex-col min-h-screen">
+                <main>{children}</main>
+              </div>
+            </AntdAppProvider>
           </ThemeProvider>
         </ReactQueryProvider>
       </body>

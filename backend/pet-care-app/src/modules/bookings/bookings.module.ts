@@ -6,6 +6,7 @@ import { Booking } from './entities/booking.entity';
 import { OwnerProfile } from '../owner/entities/owner.entity';
 import { ProviderProfile } from '../provider/entities/provider.entity';
 import { Pet } from '../pets/entities/pet.entity';
+import { HireRequestsModule } from '../hire-requests/hire-requests.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { Pet } from '../pets/entities/pet.entity';
       ProviderProfile,
       Pet,
     ]),
+    HireRequestsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService],

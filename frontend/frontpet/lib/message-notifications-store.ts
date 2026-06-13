@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 export type MessageNotificationItem = {
   senderUserId: string;
+  senderDisplayName?: string | null;
   unreadCount: number;
   previewText: string;
   lastMessageAt: string;

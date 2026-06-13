@@ -12,12 +12,12 @@ import {
   InputNumber,
   DatePicker,
   Tabs,
-  message,
   Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { api } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 
 type Vac = {
   id: string;
@@ -49,8 +49,8 @@ export default function ProviderPetRecordsPage() {
     try {
       const { data: pet } = await api.get<{ name: string }>(`/pets/assigned/${petId}`);
       setPetName(pet.name);
-    } catch {
-      message.error("Pet not found or not assigned");
+    } catch (err) {
+      notifyError(extractApiError(err, "Pet not found or not assigned"));
     }
     try {
       const { data: v } = await api.get<Vac[]>(`/vaccination-record/pet/${petId}`);
@@ -92,10 +92,10 @@ export default function ProviderPetRecordsPage() {
             onClick={async () => {
               try {
                 await api.post(`/vaccination-record/${r.id}/approve`);
-                message.success("Approved for owner");
+                notifySuccess("Vaccination approved for owner");
                 load();
-              } catch {
-                message.error("Failed");
+              } catch (err) {
+                notifyError(extractApiError(err, "Could not approve vaccination"));
               }
             }}
           >
@@ -127,9 +127,10 @@ export default function ProviderPetRecordsPage() {
             onClick={async () => {
               try {
                 await api.post(`/weight-record/${r.id}/approve`);
+                notifySuccess("Weight record approved for owner");
                 load();
-              } catch {
-                message.error("Failed");
+              } catch (err) {
+                notifyError(extractApiError(err, "Could not approve weight record"));
               }
             }}
           >
@@ -173,6 +174,7 @@ export default function ProviderPetRecordsPage() {
                   className="mb-3"
                   onClick={() => {
                     weightForm.resetFields();
+                    weightForm.setFieldsValue({ recordDate: dayjs() });
                     setWOpen(true);
                   }}
                 >
@@ -200,9 +202,10 @@ export default function ProviderPetRecordsPage() {
                   : undefined,
               });
               setVacOpen(false);
+              notifySuccess("Vaccination record added successfully");
               load();
-            } catch {
-              message.error("Failed");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not add vaccination record"));
             }
           }}
         >
@@ -233,9 +236,10 @@ export default function ProviderPetRecordsPage() {
                 recordDate: (v.recordDate as dayjs.Dayjs).format("YYYY-MM-DD"),
               });
               setWOpen(false);
+              notifySuccess("Weight record added successfully");
               load();
-            } catch {
-              message.error("Failed");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not add weight record"));
             }
           }}
         >
@@ -243,7 +247,12 @@ export default function ProviderPetRecordsPage() {
             <InputNumber min={0} className="w-full" />
           </Form.Item>
           <Form.Item name="recordDate" label="Date" rules={[{ required: true }]}>
-            <DatePicker className="w-full" />
+            <DatePicker
+              className="w-full"
+              disabledDate={(current) =>
+                !!current && current.isAfter(dayjs(), "day")
+              }
+            />
           </Form.Item>
           <Button type="primary" htmlType="submit" block>
             Save

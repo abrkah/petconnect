@@ -19,11 +19,8 @@ const baseURL = getApiBaseUrl();
 
 export const api: AxiosInstance = axios.create({ baseURL });
 
-const PET_PLACEHOLDER =
-  "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=400&q=70";
-
-export function petPhotoSrc(photoUrl?: string | null): string {
-  if (!photoUrl?.trim()) return PET_PLACEHOLDER;
+export function petPhotoSrc(photoUrl?: string | null): string | null {
+  if (!photoUrl?.trim()) return null;
   if (photoUrl.startsWith("http://") || photoUrl.startsWith("https://")) {
     return photoUrl;
   }
@@ -31,7 +28,23 @@ export function petPhotoSrc(photoUrl?: string | null): string {
   return `${baseURL}${path}`;
 }
 
-export type PetGender = "male" | "female" | "other";
+export function buildPetPayload(values: Record<string, unknown>) {
+  const payload: Record<string, string | number> = {
+    name: String(values.name ?? "").trim(),
+    breed: String(values.breed ?? "").trim(),
+    age: Number(values.age),
+  };
+  const weight = values.weight;
+  if (weight != null && weight !== "") {
+    payload.weight = Number(weight);
+  }
+  if (values.gender) {
+    payload.gender = String(values.gender).toLowerCase();
+  }
+  return payload;
+}
+
+export type PetGender = "male" | "female";
 
 export function buildPetFormData(
   values: Record<string, unknown>,
@@ -69,8 +82,16 @@ api.interceptors.request.use((config) => {
 
 export type UserRole = "OWNER" | "PROVIDER";
 
-export async function loginApi(email: string, password: string) {
-  const { data } = await axios.post(`${baseURL}/auth/login`, { email, password });
+export async function loginApi(
+  email: string,
+  password: string,
+  role: UserRole,
+) {
+  const { data } = await axios.post(`${baseURL}/auth/login`, {
+    email,
+    password,
+    role,
+  });
   return data as {
     id: string;
     token: string;
@@ -79,11 +100,26 @@ export async function loginApi(email: string, password: string) {
   };
 }
 
+export async function sendPhoneCode(phoneNumber: string) {
+  const { data } = await axios.post(`${baseURL}/auth/phone/send-code`, {
+    phoneNumber,
+  });
+  return data as { phoneNumber: string; devCode?: string };
+}
+
+export async function verifyPhoneCode(phoneNumber: string, code: string) {
+  const { data } = await axios.post(`${baseURL}/auth/phone/verify-code`, {
+    phoneNumber,
+    code,
+  });
+  return data as { phoneNumber: string };
+}
+
 export async function signupApi(body: {
   email: string;
   password: string;
   role: UserRole;
 }) {
   const { data } = await axios.post(`${baseURL}/auth/signup`, body);
-  return data as string;
+  return data as { message: string };
 }

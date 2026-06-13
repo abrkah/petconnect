@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -18,7 +18,11 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(userDto: CreateUserDto): Promise<string> {
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
+  async create(userDto: CreateUserDto): Promise<{ message: string }> {
     if (!userDto.password) {
       throw new BadRequestException('Password is required');
     }
@@ -27,20 +31,46 @@ export class UserService {
       throw new BadRequestException('Role is required (OWNER or PROVIDER)');
     }
 
+    const email = this.normalizeEmail(userDto.email);
+
+    const existing = await this.userRepository
+      .createQueryBuilder('user')
+      .where('LOWER(user.email) = :email', { email })
+      .getOne();
+
+    if (existing) {
+      throw new BadRequestException(
+        'An account with this email already exists. Please sign in instead.',
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(userDto.password, 12);
 
     const user = this.userRepository.create({
-      email: userDto.email,
+      email,
       password: hashedPassword,
-      role: userDto.role as UserRole, // ✅ ENUM usage
+      role: userDto.role as UserRole,
       isFirstLogin: true,
     });
 
-    await this.userRepository.save(user);
+    try {
+      await this.userRepository.save(user);
+    } catch (err) {
+      if (
+        err instanceof QueryFailedError &&
+        (err as QueryFailedError & { driverError?: { code?: string } })
+          .driverError?.code === '23505'
+      ) {
+        throw new BadRequestException(
+          'An account with this email already exists. Please sign in instead.',
+        );
+      }
+      throw err;
+    }
 
-    await this.sendPasswordEmail(userDto.email, userDto.password);
+    void this.sendPasswordEmail(email, userDto.password);
 
-    return 'User created successfully';
+    return { message: 'User created successfully' };
   }
 
   async findOne(id: string): Promise<User | null> {

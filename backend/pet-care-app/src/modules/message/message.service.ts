@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { User } from '../user/entities/user.entity';
@@ -19,6 +19,31 @@ export class MessageService {
     private readonly userRepo: Repository<User>,
     private readonly chatGateway: ChatGateway,
   ) {}
+
+  async getDisplayName(userId: string): Promise<string | null> {
+    const names = await this.getDisplayNames([userId]);
+    return names.get(userId) ?? null;
+  }
+
+  private async getDisplayNames(userIds: string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(userIds.filter(Boolean))];
+    const map = new Map<string, string>();
+    if (unique.length === 0) return map;
+
+    const users = await this.userRepo.find({
+      where: { id: In(unique), isDeleted: false },
+      relations: ['ownerProfile', 'providerProfile'],
+    });
+
+    for (const user of users) {
+      const name =
+        user.ownerProfile?.fullName?.trim() ||
+        user.providerProfile?.fullName?.trim();
+      if (name) map.set(user.id, name);
+    }
+
+    return map;
+  }
 
   async send(senderId: string, dto: CreateMessageDto) {
     if (senderId === dto.receiverUserId) {
@@ -52,6 +77,7 @@ export class MessageService {
     total: number;
     items: {
       senderUserId: string;
+      senderDisplayName: string | null;
       unreadCount: number;
       previewText: string;
       lastMessageAt: string;
@@ -74,8 +100,12 @@ export class MessageService {
         new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
     );
 
+    const senderIds = groups.map((g) => g.senderUserId);
+    const displayNames = await this.getDisplayNames(senderIds);
+
     const items: {
       senderUserId: string;
+      senderDisplayName: string | null;
       unreadCount: number;
       previewText: string;
       lastMessageAt: string;
@@ -92,6 +122,7 @@ export class MessageService {
       });
       items.push({
         senderUserId: g.senderUserId,
+        senderDisplayName: displayNames.get(g.senderUserId) ?? null,
         unreadCount: Number(g.cnt),
         previewText: latest?.messageText ?? '',
         lastMessageAt:
@@ -140,8 +171,13 @@ export class MessageService {
         m.senderUserId === userId ? m.receiverUserId : m.senderUserId;
       if (!latestByPeer.has(peer)) latestByPeer.set(peer, m);
     }
-    return [...latestByPeer.entries()].map(([userId, lastMessage]) => ({
-      userId,
+
+    const peerIds = [...latestByPeer.keys()];
+    const displayNames = await this.getDisplayNames(peerIds);
+
+    return [...latestByPeer.entries()].map(([peerId, lastMessage]) => ({
+      userId: peerId,
+      displayName: displayNames.get(peerId) ?? null,
       lastMessage,
     }));
   }

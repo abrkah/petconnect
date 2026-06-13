@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Table, Button, Select, message } from "antd";
+import { Table, Button, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { api } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 
 type Booking = {
   id: string;
@@ -25,7 +26,9 @@ export default function ProviderBookingsPage() {
   };
 
   useEffect(() => {
-    load().catch(() => message.error("Load failed"));
+    load().catch((err) =>
+      notifyError(extractApiError(err, "Could not load bookings")),
+    );
   }, []);
 
   const cols: ColumnsType<Booking> = [
@@ -51,10 +54,10 @@ export default function ProviderBookingsPage() {
           onChange={async (v) => {
             try {
               await api.patch(`/bookings/${r.id}`, { status: v });
-              message.success("Updated");
+              notifySuccess("Booking status updated successfully");
               load();
-            } catch {
-              message.error("Update failed");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not update booking"));
             }
           }}
         />
@@ -69,9 +72,10 @@ export default function ProviderBookingsPage() {
           onClick={async () => {
             try {
               await api.delete(`/bookings/${r.id}`);
+              notifySuccess("Booking cancelled successfully");
               load();
-            } catch {
-              message.error("Cancel failed");
+            } catch (err) {
+              notifyError(extractApiError(err, "Could not cancel booking"));
             }
           }}
         >
