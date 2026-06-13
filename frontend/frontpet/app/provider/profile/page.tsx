@@ -25,6 +25,7 @@ import { validateAustriaPhoneRule } from "@/lib/austria-phone";
 import { PROVIDER_GENDER_OPTIONS } from "@/lib/provider-gender";
 import {
   AVAILABILITY_TIME_OPTIONS,
+  getAvailabilityOverlapMessage,
   type AvailabilitySlot,
 } from "@/lib/availability";
 import {
@@ -138,9 +139,15 @@ export default function ProviderProfilePage() {
   const saveSlots = async (v: {
     slots?: { dayOfWeek: number; startTime: string; endTime: string }[];
   }) => {
+    const slots = v.slots ?? [];
+    const overlapMessage = getAvailabilityOverlapMessage(slots);
+    if (overlapMessage) {
+      notifyError(overlapMessage);
+      return;
+    }
+
     setSavingSlots(true);
     try {
-      const slots = v.slots ?? [];
       await api.put("/provider-availability/me", { slots });
       slotForm.setFieldsValue({ slots });
       notifySuccess("Weekly availability was saved");
@@ -336,73 +343,90 @@ export default function ProviderProfilePage() {
                 {fields.map(({ key, name, ...rest }) => (
                   <div
                     key={key}
-                    className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
+                    className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
                   >
-                    <Form.Item
-                      {...rest}
-                      name={[name, "dayOfWeek"]}
-                      rules={[{ required: true, message: "Pick a day" }]}
-                      className="!mb-0 min-w-[100px] flex-1"
-                    >
-                      <Select size="large" options={days} className={profileFieldClass} />
-                    </Form.Item>
-                    <Form.Item
-                      {...rest}
-                      name={[name, "startTime"]}
-                      rules={[{ required: true, message: "Start time" }]}
-                      className="!mb-0 min-w-[120px] flex-1"
-                    >
-                      <Select
-                        size="large"
-                        options={AVAILABILITY_TIME_OPTIONS}
-                        placeholder="Start"
-                        showSearch
-                        optionFilterProp="label"
-                        className={profileFieldClass}
-                      />
-                    </Form.Item>
-                    <span className="text-slate-400">–</span>
-                    <Form.Item
-                      {...rest}
-                      name={[name, "endTime"]}
-                      dependencies={[[name, "startTime"]]}
-                      className="!mb-0 min-w-[120px] flex-1"
-                      rules={[
-                        { required: true, message: "End time" },
-                        ({ getFieldValue }) => ({
-                          validator(_, endTime) {
-                            const startTime = getFieldValue([
-                              "slots",
-                              name,
-                              "startTime",
-                            ]);
-                            if (!startTime || !endTime || endTime > startTime) {
-                              return Promise.resolve();
-                            }
-                            return Promise.reject(
-                              new Error("End must be after start"),
-                            );
-                          },
-                        }),
-                      ]}
-                    >
-                      <Select
-                        size="large"
-                        options={AVAILABILITY_TIME_OPTIONS}
-                        placeholder="End"
-                        showSearch
-                        optionFilterProp="label"
-                        className={profileFieldClass}
-                      />
-                    </Form.Item>
-                    <button
-                      type="button"
-                      onClick={() => remove(name)}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl text-rose-500 transition hover:bg-rose-50"
-                      aria-label="Remove time slot"
-                    >
-                      <MinusCircleOutlined />
-                    </button>
+                    <div className="flex items-start gap-3">
+                      <Form.Item
+                        {...rest}
+                        name={[name, "dayOfWeek"]}
+                        label={
+                          <span className="font-medium text-slate-700">Day</span>
+                        }
+                        rules={[{ required: true, message: "Pick a day" }]}
+                        className="!mb-3 min-w-0 flex-1"
+                      >
+                        <Select
+                          size="large"
+                          options={days}
+                          className={profileFieldClass}
+                        />
+                      </Form.Item>
+                      <button
+                        type="button"
+                        onClick={() => remove(name)}
+                        className="mt-[30px] flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-rose-500 transition hover:bg-rose-50"
+                        aria-label="Remove time slot"
+                      >
+                        <MinusCircleOutlined />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+                      <Form.Item
+                        {...rest}
+                        name={[name, "startTime"]}
+                        label={
+                          <span className="font-medium text-slate-700">Start</span>
+                        }
+                        rules={[{ required: true, message: "Start time" }]}
+                        className="!mb-0"
+                      >
+                        <Select
+                          size="large"
+                          options={AVAILABILITY_TIME_OPTIONS}
+                          placeholder="Start"
+                          showSearch
+                          optionFilterProp="label"
+                          className={profileFieldClass}
+                        />
+                      </Form.Item>
+                      <span className="pb-2 text-slate-400">–</span>
+                      <Form.Item
+                        {...rest}
+                        name={[name, "endTime"]}
+                        label={
+                          <span className="font-medium text-slate-700">End</span>
+                        }
+                        dependencies={[[name, "startTime"]]}
+                        className="!mb-0"
+                        rules={[
+                          { required: true, message: "End time" },
+                          ({ getFieldValue }) => ({
+                            validator(_, endTime) {
+                              const startTime = getFieldValue([
+                                "slots",
+                                name,
+                                "startTime",
+                              ]);
+                              if (!startTime || !endTime || endTime > startTime) {
+                                return Promise.resolve();
+                              }
+                              return Promise.reject(
+                                new Error("End must be after start"),
+                              );
+                            },
+                          }),
+                        ]}
+                      >
+                        <Select
+                          size="large"
+                          options={AVAILABILITY_TIME_OPTIONS}
+                          placeholder="End"
+                          showSearch
+                          optionFilterProp="label"
+                          className={profileFieldClass}
+                        />
+                      </Form.Item>
+                    </div>
                   </div>
                 ))}
                 <Button
