@@ -12,6 +12,7 @@ import { UpdatePetDto } from './dto/update-pet.dto';
 import { OwnerProfile } from '../owner/entities/owner.entity';
 import { ProviderPetAssignment } from '../provider-pet-assignment/entities/provider-pet-assignment.entity';
 import { FileService } from '../common/file.service';
+import { WeightRecordService } from '../health/weight-record/weight-record.service';
 
 @Injectable()
 export class PetsService {
@@ -23,11 +24,24 @@ export class PetsService {
     @InjectRepository(ProviderPetAssignment)
     private readonly assignRepo: Repository<ProviderPetAssignment>,
     private readonly fileService: FileService,
+    private readonly weightRecordService: WeightRecordService,
   ) {}
 
   private photoUrlFromFile(file: Express.Multer.File): string {
     const filename = this.fileService.saveFile(file, 'pets');
     return `/uploads/pets/${filename}`;
+  }
+
+  private async withLatestWeight(pets: Pet[]): Promise<Pet[]> {
+    if (pets.length === 0) return pets;
+    const latest = await this.weightRecordService.latestVisibleWeightsForPets(
+      pets.map((p) => p.id),
+    );
+    return pets.map((pet) => {
+      const fromRecord = latest.get(pet.id);
+      if (fromRecord == null) return pet;
+      return { ...pet, weight: fromRecord };
+    });
   }
 
   private async ownerProfileFor(userId: string) {
@@ -58,10 +72,11 @@ export class PetsService {
 
   async findAllForOwner(userId: string) {
     const owner = await this.ownerProfileFor(userId);
-    return this.petRepo.find({
+    const pets = await this.petRepo.find({
       where: { owner: { id: owner.id } },
       order: { name: 'ASC' },
     });
+    return this.withLatestWeight(pets);
   }
 
   async findOneForOwner(userId: string, petId: string) {
@@ -71,7 +86,8 @@ export class PetsService {
       relations: ['owner'],
     });
     if (!pet) throw new NotFoundException('Pet not found');
-    return pet;
+    const [withWeight] = await this.withLatestWeight([pet]);
+    return withWeight;
   }
 
   async updateForOwner(
