@@ -36,8 +36,12 @@ export class MessageController {
   }
 
   @Get('presence/:userId')
-  peerPresence(@Param('userId') userId: string) {
-    return this.presenceService.getPresence(userId);
+  async peerPresence(@Param('userId') userId: string) {
+    const [presence, displayName] = await Promise.all([
+      this.presenceService.getPresence(userId),
+      this.messageService.getDisplayName(userId),
+    ]);
+    return { ...presence, displayName };
   }
 
   @Get('conversation/:userId')

@@ -13,6 +13,7 @@ import {
   useMessageNotificationsStore,
   type MessageNotificationItem,
 } from "@/lib/message-notifications-store";
+import { peerDisplayName } from "@/lib/message-peer";
 import { useAuthenticationStore } from "@/app/utils/uistate/fetures/authentication";
 import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
@@ -112,7 +113,10 @@ export default function MessageNotificationBell({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="font-semibold text-slate-900">
-                      User {it.senderUserId.slice(0, 8)}
+                      {peerDisplayName(
+                        it.senderUserId,
+                        it.senderDisplayName,
+                      )}
                     </span>
                     <span className="flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-full bg-teal-600 px-1.5 text-[11px] font-bold text-white">
                       {it.unreadCount > 99 ? "99+" : it.unreadCount}
