@@ -157,7 +157,7 @@ export default function MessageNotificationBell({
         setOpen(next);
         if (next) fetchSummary();
       }}
-      dropdownRender={() => dropdownContent}
+      popupRender={() => dropdownContent}
       trigger={["click"]}
       placement="bottomRight"
     >
