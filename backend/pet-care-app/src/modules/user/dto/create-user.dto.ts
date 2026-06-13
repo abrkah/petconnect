@@ -22,7 +22,6 @@ export class CreateUserDto {
   @IsEnum(UserRole)
   role!: UserRole; // ✅ OWNER | PROVIDER
 
-  // Optional (handled later in OwnerProfile / ProviderProfile)
   @IsString()
   @IsOptional()
   user_image?: string;

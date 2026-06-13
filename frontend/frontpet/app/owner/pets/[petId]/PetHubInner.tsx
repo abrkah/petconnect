@@ -243,6 +243,7 @@ export default function OwnerPetHubInner() {
                 type="primary"
                 onClick={() => {
                   weightForm.resetFields();
+                  weightForm.setFieldsValue({ recordDate: dayjs() });
                   setWeightOpen(true);
                 }}
               >
@@ -359,7 +360,12 @@ export default function OwnerPetHubInner() {
             label="Date"
             rules={[{ required: true }]}
           >
-            <DatePicker className="w-full" />
+            <DatePicker
+              className="w-full"
+              disabledDate={(current) =>
+                !!current && current.isAfter(dayjs(), "day")
+              }
+            />
           </Form.Item>
           <Button type="primary" htmlType="submit" block>
             Save

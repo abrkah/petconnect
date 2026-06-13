@@ -174,6 +174,7 @@ export default function ProviderPetRecordsPage() {
                   className="mb-3"
                   onClick={() => {
                     weightForm.resetFields();
+                    weightForm.setFieldsValue({ recordDate: dayjs() });
                     setWOpen(true);
                   }}
                 >
@@ -246,7 +247,12 @@ export default function ProviderPetRecordsPage() {
             <InputNumber min={0} className="w-full" />
           </Form.Item>
           <Form.Item name="recordDate" label="Date" rules={[{ required: true }]}>
-            <DatePicker className="w-full" />
+            <DatePicker
+              className="w-full"
+              disabledDate={(current) =>
+                !!current && current.isAfter(dayjs(), "day")
+              }
+            />
           </Form.Item>
           <Button type="primary" htmlType="submit" block>
             Save

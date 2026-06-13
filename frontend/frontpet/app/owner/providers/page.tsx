@@ -17,6 +17,10 @@ import {
 import Link from "next/link";
 import { api } from "@/lib/petconnect-api";
 import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
+import {
+  formatAvailabilitySummary,
+  type AvailabilitySlot,
+} from "@/lib/availability";
 import dayjs from "dayjs";
 
 const { Title, Paragraph } = Typography;
@@ -28,7 +32,31 @@ type Provider = {
   bio?: string;
   serviceType: string;
   user?: { id: string };
+  availabilities?: AvailabilitySlot[];
 };
+
+type HireRequestRow = {
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  provider: { id: string };
+};
+
+type HireStatus = "PENDING" | "APPROVED";
+
+function buildHireStatusMap(requests: HireRequestRow[]): Map<string, HireStatus> {
+  const map = new Map<string, HireStatus>();
+  for (const request of requests) {
+    const providerId = request.provider.id;
+    if (request.status === "APPROVED") {
+      map.set(providerId, "APPROVED");
+    } else if (
+      request.status === "PENDING" &&
+      map.get(providerId) !== "APPROVED"
+    ) {
+      map.set(providerId, "PENDING");
+    }
+  }
+  return map;
+}
 
 export default function OwnerProvidersPage() {
   const [list, setList] = useState<Provider[]>([]);
@@ -43,6 +71,18 @@ export default function OwnerProvidersPage() {
   const [hireForm] = Form.useForm();
   const [hireOpen, setHireOpen] = useState(false);
   const [hirePick, setHirePick] = useState<Provider | null>(null);
+  const [hireByProvider, setHireByProvider] = useState<Map<string, HireStatus>>(
+    () => new Map(),
+  );
+
+  const loadHireStatuses = useCallback(async () => {
+    try {
+      const { data } = await api.get<HireRequestRow[]>("/hire-requests/mine");
+      setHireByProvider(buildHireStatusMap(data));
+    } catch {
+      setHireByProvider(new Map());
+    }
+  }, []);
 
   const load = useCallback(async () => {
     const { data } = await api.get<Provider[]>("/provider/directory", {
@@ -53,9 +93,14 @@ export default function OwnerProvidersPage() {
 
   useEffect(() => {
     load().catch(() => notifyError("Could not load providers"));
-  }, [load]);
+    loadHireStatuses();
+  }, [load, loadHireStatuses]);
 
   const openBook = async (p: Provider) => {
+    if (hireByProvider.get(p.id) !== "APPROVED") {
+      notifyError("Hire this provider and wait for approval before booking.");
+      return;
+    }
     setSelected(p);
     try {
       const { data: a } = await api.get(`/provider-availability/provider/${p.id}`);
@@ -81,7 +126,7 @@ export default function OwnerProvidersPage() {
     <div>
       <Title level={3}>Services</Title>
       <Paragraph type="secondary">
-        Find providers offering walks, vaccinations, and more — then book a slot.
+        Find providers, send a hire request, and book once they accept.
       </Paragraph>
       <div className="flex flex-wrap gap-3 mb-6">
         <Input.Search
@@ -116,28 +161,58 @@ export default function OwnerProvidersPage() {
         </Button>
       </div>
       <Row gutter={[16, 16]}>
-        {list.map((p) => (
+        {list.map((p) => {
+          const hireStatus = hireByProvider.get(p.id);
+          const isHired = hireStatus === "APPROVED";
+          const isPending = hireStatus === "PENDING";
+
+          return (
           <Col xs={24} md={12} key={p.id}>
             <Card
               title={p.fullName}
               extra={<Tag>{p.serviceType.replace(/_/g, " ")}</Tag>}
             >
               <p className="text-slate-600 text-sm mb-2">{p.bio || "—"}</p>
-              <p className="font-medium text-teal-700 mb-3">
+              <p className="font-medium text-teal-700 mb-1">
                 ${Number(p.hourlyPayment).toFixed(2)} / hr
               </p>
+              <p
+                className="mb-3 text-xs leading-relaxed text-slate-500"
+                title={formatAvailabilitySummary(p.availabilities)}
+              >
+                <span className="font-medium text-slate-600">Available: </span>
+                {formatAvailabilitySummary(p.availabilities)}
+              </p>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => openHire(p)}>Hire</Button>
+                {isHired ? (
+                  <Button disabled>Hired</Button>
+                ) : isPending ? (
+                  <Button disabled>Pending</Button>
+                ) : (
+                  <Button onClick={() => openHire(p)}>Hire</Button>
+                )}
                 <Link href={`/owner/messages?with=${p.user?.id}`}>
                   <Button>Message</Button>
                 </Link>
-                <Button type="primary" onClick={() => openBook(p)}>
+                <Button
+                  type="primary"
+                  disabled={!isHired}
+                  title={
+                    isHired
+                      ? undefined
+                      : isPending
+                        ? "Waiting for provider to accept your hire request"
+                        : "Send a hire request and wait for approval before booking"
+                  }
+                  onClick={() => openBook(p)}
+                >
                   Book
                 </Button>
               </div>
             </Card>
           </Col>
-        ))}
+          );
+        })}
       </Row>
 
       <Modal
@@ -153,13 +228,10 @@ export default function OwnerProvidersPage() {
           </p>
         ) : (
           <p className="text-sm text-slate-600 mb-3">
-            Weekly slots:{" "}
-            {(avail as { dayOfWeek: number; startTime: string; endTime: string }[])
-              .map(
-                (s) =>
-                  `D${s.dayOfWeek} ${s.startTime}-${s.endTime}`,
-              )
-              .join("; ")}
+            {formatAvailabilitySummary(
+              avail as AvailabilitySlot[],
+              "No weekly slots published",
+            )}
           </p>
         )}
         <Form
@@ -233,6 +305,7 @@ export default function OwnerProvidersPage() {
               });
               notifySuccess("Hire request sent successfully");
               setHireOpen(false);
+              await loadHireStatuses();
             } catch (err) {
               notifyError(extractApiError(err, "Could not send hire request"));
             }

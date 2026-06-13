@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { Card, Form, Input, Button, Typography } from "antd";
 import { api } from "@/lib/petconnect-api";
 import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
+import AustriaPhoneInput from "@/components/petconnect/AustriaPhoneInput";
+import { validateAustriaPhoneRule } from "@/lib/austria-phone";
 
 const { Title } = Typography;
 
@@ -43,8 +45,12 @@ export default function OwnerProfilePage() {
         <Form.Item name="fullName" label="Name" rules={[{ required: true }]}>
           <Input />
         </Form.Item>
-        <Form.Item name="phoneNumber" label="Phone" rules={[{ required: true }]}>
-          <Input />
+        <Form.Item
+          name="phoneNumber"
+          label="Phone (optional, Austria)"
+          rules={[{ validator: validateAustriaPhoneRule }]}
+        >
+          <AustriaPhoneInput placeholder="660 1234567" />
         </Form.Item>
         <Button type="primary" htmlType="submit" className="!bg-teal-600">
           Save
