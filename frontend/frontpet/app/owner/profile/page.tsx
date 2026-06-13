@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button, Form, Input, Skeleton } from "antd";
+import { Form, Input, Skeleton } from "antd";
 import {
   UserCircleIcon,
   MapPinIcon,
@@ -16,6 +16,12 @@ import {
   validateAustriaPhoneRule,
   validateRequiredAustriaPhoneRule,
 } from "@/lib/austria-phone";
+import {
+  profileFieldClass,
+  profileInitials,
+  ProfileSectionCard,
+  ProfileStickySave,
+} from "@/components/petconnect/profile-ui";
 
 type OwnerProfileForm = {
   fullName: string;
@@ -26,49 +32,6 @@ type OwnerProfileForm = {
   emergencyContactPhone?: string;
   notes?: string;
 };
-
-function profileInitials(name: string) {
-  return (
-    name
-      .split(/\s+/)
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "PC"
-  );
-}
-
-function SectionCard({
-  icon: Icon,
-  title,
-  description,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_12px_40px_-16px_rgba(15,23,42,0.12)]">
-      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-5 sm:px-8">
-        <div className="flex items-start gap-4">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-teal-600 ring-1 ring-teal-100">
-            <Icon className="h-5 w-5" aria-hidden />
-          </span>
-          <div>
-            <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-            <p className="mt-1 text-sm text-slate-500">{description}</p>
-          </div>
-        </div>
-      </div>
-      <div className="space-y-1 px-6 py-6 sm:px-8">{children}</div>
-    </section>
-  );
-}
-
-const fieldClass =
-  "!rounded-xl !border-slate-200 hover:!border-teal-300 focus:!border-teal-500";
 
 export default function OwnerProfilePage() {
   const [form] = Form.useForm<OwnerProfileForm>();
@@ -181,6 +144,7 @@ export default function OwnerProfilePage() {
       </section>
 
       <Form
+        id="owner-profile-form"
         form={form}
         layout="vertical"
         onFinish={save}
@@ -188,7 +152,7 @@ export default function OwnerProfilePage() {
         className="space-y-6"
       >
         <div className="grid gap-6 lg:grid-cols-2">
-          <SectionCard
+          <ProfileSectionCard
             icon={UserCircleIcon}
             title="Personal details"
             description="How caregivers identify and contact you."
@@ -198,7 +162,7 @@ export default function OwnerProfilePage() {
               label={<span className="font-medium text-slate-700">Full name</span>}
               rules={[{ required: true, message: "Enter your name" }]}
             >
-              <Input size="large" className={fieldClass} placeholder="Alex Rivera" />
+              <Input size="large" className={profileFieldClass} placeholder="Alex Rivera" />
             </Form.Item>
             <Form.Item
               name="phoneNumber"
@@ -207,9 +171,9 @@ export default function OwnerProfilePage() {
             >
               <AustriaPhoneInput size="large" placeholder="660 1234567" />
             </Form.Item>
-          </SectionCard>
+          </ProfileSectionCard>
 
-          <SectionCard
+          <ProfileSectionCard
             icon={MapPinIcon}
             title="Location"
             description="Helps match you with nearby providers."
@@ -219,7 +183,7 @@ export default function OwnerProfilePage() {
               label={<span className="font-medium text-slate-700">City</span>}
               rules={[{ required: true, message: "Enter your city" }]}
             >
-              <Input size="large" className={fieldClass} placeholder="Vienna" />
+              <Input size="large" className={profileFieldClass} placeholder="Vienna" />
             </Form.Item>
             <Form.Item
               name="address"
@@ -231,14 +195,14 @@ export default function OwnerProfilePage() {
             >
               <Input
                 size="large"
-                className={fieldClass}
+                className={profileFieldClass}
                 placeholder="Street, building, postal code"
               />
             </Form.Item>
-          </SectionCard>
+          </ProfileSectionCard>
         </div>
 
-        <SectionCard
+        <ProfileSectionCard
           icon={ShieldCheckIcon}
           title="Emergency contact"
           description="Someone we can reach if you are unavailable during a visit."
@@ -249,7 +213,7 @@ export default function OwnerProfilePage() {
               label={<span className="font-medium text-slate-700">Contact name</span>}
               className="!mb-0"
             >
-              <Input size="large" className={fieldClass} placeholder="Jordan Lee" />
+              <Input size="large" className={profileFieldClass} placeholder="Jordan Lee" />
             </Form.Item>
             <Form.Item
               name="emergencyContactPhone"
@@ -260,9 +224,9 @@ export default function OwnerProfilePage() {
               <AustriaPhoneInput size="large" placeholder="660 1234567" />
             </Form.Item>
           </div>
-        </SectionCard>
+        </ProfileSectionCard>
 
-        <SectionCard
+        <ProfileSectionCard
           icon={ChatBubbleLeftEllipsisIcon}
           title="Notes for providers"
           description="Share preferences, pet context, or access instructions."
@@ -278,28 +242,18 @@ export default function OwnerProfilePage() {
           >
             <Input.TextArea
               rows={4}
-              className={`${fieldClass} !resize-none`}
+              className={`${profileFieldClass} !resize-none`}
               placeholder="I have two dogs and prefer morning walks on weekdays."
             />
           </Form.Item>
-        </SectionCard>
+        </ProfileSectionCard>
 
-        <div className="sticky bottom-4 z-10 flex justify-end">
-          <div className="inline-flex items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/95 px-4 py-3 shadow-lg shadow-slate-900/10 backdrop-blur-md">
-            <span className="hidden text-sm text-slate-500 sm:inline">
-              Changes apply to future bookings
-            </span>
-            <Button
-              type="primary"
-              htmlType="submit"
-              size="large"
-              loading={saving}
-              className="!h-11 !rounded-xl !border-0 !bg-teal-600 !px-8 !font-semibold shadow-md shadow-teal-900/20 hover:!bg-teal-500"
-            >
-              Save profile
-            </Button>
-          </div>
-        </div>
+        <ProfileStickySave
+          formId="owner-profile-form"
+          hint="Changes apply to future bookings"
+          label="Save profile"
+          loading={saving}
+        />
       </Form>
     </div>
   );
