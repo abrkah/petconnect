@@ -90,21 +90,12 @@ api.interceptors.request.use((config) => {
 
 export type UserRole = "OWNER" | "PROVIDER";
 
-<<<<<<< HEAD
 export async function loginApi(
   email: string,
   password: string,
   role: UserRole,
 ) {
-  const { data } = await axios.post(`${baseURL}/auth/login`, {
-    email,
-    password,
-    role,
-  });
-=======
-export async function loginApi(email: string, password: string) {
-  const { data } = await api.post("/auth/login", { email, password });
->>>>>>> 3814ec7 (Fix hero images and update API config)
+  const { data } = await api.post("/auth/login", { email, password, role });
   return data as {
     id: string;
     token: string;
@@ -114,14 +105,12 @@ export async function loginApi(email: string, password: string) {
 }
 
 export async function sendPhoneCode(phoneNumber: string) {
-  const { data } = await axios.post(`${baseURL}/auth/phone/send-code`, {
-    phoneNumber,
-  });
+  const { data } = await api.post("/auth/phone/send-code", { phoneNumber });
   return data as { phoneNumber: string; devCode?: string };
 }
 
 export async function verifyPhoneCode(phoneNumber: string, code: string) {
-  const { data } = await axios.post(`${baseURL}/auth/phone/verify-code`, {
+  const { data } = await api.post("/auth/phone/verify-code", {
     phoneNumber,
     code,
   });
@@ -133,11 +122,6 @@ export async function signupApi(body: {
   password: string;
   role: UserRole;
 }) {
-<<<<<<< HEAD
-  const { data } = await axios.post(`${baseURL}/auth/signup`, body);
-  return data as { message: string };
-=======
   const { data } = await api.post("/auth/signup", body);
-  return data as string;
->>>>>>> 3814ec7 (Fix hero images and update API config)
+  return data as { message: string };
 }
