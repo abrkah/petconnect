@@ -1,11 +1,11 @@
-import { IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 
 export class OnboardOwnerDto {
   @IsString()
   @MinLength(2)
   fullName!: string;
 
+  @IsOptional()
   @IsString()
-  @MinLength(5)
-  phoneNumber!: string;
+  phoneNumber?: string;
 }

@@ -5,6 +5,7 @@ import {
   IsString,
   Min,
   MinLength,
+  MaxLength,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { PetGender } from '../../../common/pet-gender.enum';
@@ -19,6 +20,7 @@ export class CreatePetDto {
 
   @IsString()
   @MinLength(1)
+  @MaxLength(120)
   breed!: string;
 
   @Type(() => Number)

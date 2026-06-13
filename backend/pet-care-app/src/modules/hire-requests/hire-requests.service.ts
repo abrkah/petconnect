@@ -62,6 +62,34 @@ export class HireRequestsService {
     return this.hireRepo.save(hire);
   }
 
+  async ownerHasApprovedHire(
+    ownerUserId: string,
+    providerId: string,
+  ): Promise<boolean> {
+    const owner = await this.ownerRepo.findOne({
+      where: { user: { id: ownerUserId } },
+    });
+    if (!owner) return false;
+
+    const approved = await this.hireRepo.findOne({
+      where: {
+        owner: { id: owner.id },
+        provider: { id: providerId },
+        status: HireStatus.APPROVED,
+      },
+    });
+    return !!approved;
+  }
+
+  async requireApprovedHire(ownerUserId: string, providerId: string) {
+    const ok = await this.ownerHasApprovedHire(ownerUserId, providerId);
+    if (!ok) {
+      throw new BadRequestException(
+        'You must be hired by this provider before booking. Send a hire request and wait for approval.',
+      );
+    }
+  }
+
   async listFor(userId: string, role: UserRole) {
     if (role === UserRole.OWNER) {
       const owner = await this.ownerRepo.findOne({

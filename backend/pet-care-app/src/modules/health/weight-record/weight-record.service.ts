@@ -59,6 +59,16 @@ export class WeightRecordService {
     throw new ForbiddenException();
   }
 
+  private assertRecordDateNotInFuture(recordDate: string) {
+    const date = new Date(recordDate);
+    const today = new Date();
+    date.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    if (date > today) {
+      throw new BadRequestException('Weight date cannot be in the future');
+    }
+  }
+
   private async ensureProviderPet(providerUserId: string, petId: string) {
     const ok = await this.assignRepo.findOne({
       where: {
@@ -76,6 +86,7 @@ export class WeightRecordService {
       relations: ['owner', 'owner.user'],
     });
     if (!pet) throw new NotFoundException('Pet not found');
+    this.assertRecordDateNotInFuture(dto.recordDate);
 
     if (role === UserRole.OWNER) {
       if (pet.owner.user.id !== viewerId) throw new ForbiddenException();
@@ -124,7 +135,10 @@ export class WeightRecordService {
       if (row.pet.owner.user.id !== viewerId) throw new ForbiddenException();
       if (row.addedByProvider) throw new ForbiddenException();
       if (dto.weight != null) row.weight = dto.weight;
-      if (dto.recordDate != null) row.recordDate = new Date(dto.recordDate);
+      if (dto.recordDate != null) {
+        this.assertRecordDateNotInFuture(dto.recordDate);
+        row.recordDate = new Date(dto.recordDate);
+      }
       return this.repo.save(row);
     }
 
@@ -134,7 +148,10 @@ export class WeightRecordService {
         throw new ForbiddenException();
       }
       if (dto.weight != null) row.weight = dto.weight;
-      if (dto.recordDate != null) row.recordDate = new Date(dto.recordDate);
+      if (dto.recordDate != null) {
+        this.assertRecordDateNotInFuture(dto.recordDate);
+        row.recordDate = new Date(dto.recordDate);
+      }
       return this.repo.save(row);
     }
 

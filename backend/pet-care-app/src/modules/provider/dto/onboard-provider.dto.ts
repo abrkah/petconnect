@@ -8,23 +8,24 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ServiceType } from '../../../common/service-type.enum';
+import { ProviderGender } from '../../../common/provider-gender.enum';
 
 export class OnboardProviderDto {
   @IsString()
   @MinLength(2)
   fullName!: string;
 
+  @IsOptional()
   @IsString()
-  @MinLength(5)
-  phoneNumber!: string;
+  phoneNumber?: string;
 
   @Type(() => Number)
   @IsNumber()
   @Min(0)
   hourlyPayment!: number;
 
-  @IsString()
-  gender!: string;
+  @IsEnum(ProviderGender)
+  gender!: ProviderGender;
 
   @IsEnum(ServiceType)
   serviceType!: ServiceType;
