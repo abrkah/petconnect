@@ -80,6 +80,46 @@ export class WeightRecordService {
     if (!ok) throw new ForbiddenException('No access to this pet');
   }
 
+  /** Latest owner-visible weight (owner entries or approved provider entries). */
+  async latestVisibleWeightForPet(petId: string): Promise<number | null> {
+    const row = await this.repo
+      .createQueryBuilder('w')
+      .where('w.petId = :petId', { petId })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('w.addedByProviderId IS NULL').orWhere('w.isApproved = true');
+        }),
+      )
+      .orderBy('w.recordDate', 'DESC')
+      .addOrderBy('w.createdAt', 'DESC')
+      .getOne();
+    return row?.weight ?? null;
+  }
+
+  async latestVisibleWeightsForPets(
+    petIds: string[],
+  ): Promise<Map<string, number>> {
+    if (petIds.length === 0) return new Map();
+
+    const rows: { petId: string; weight: number }[] = await this.repo.query(
+      `
+      SELECT DISTINCT ON ("petId") "petId", weight
+      FROM weight_record
+      WHERE "petId" = ANY($1)
+        AND ("addedByProviderId" IS NULL OR "isApproved" = true)
+      ORDER BY "petId", "recordDate" DESC, "createdAt" DESC
+      `,
+      [petIds],
+    );
+
+    return new Map(rows.map((r) => [r.petId, Number(r.weight)]));
+  }
+
+  async syncPetWeight(petId: string): Promise<void> {
+    const weight = await this.latestVisibleWeightForPet(petId);
+    await this.petRepo.update(petId, { weight });
+  }
+
   async create(viewerId: string, role: UserRole, dto: CreateWeightRecordDto) {
     const pet = await this.petRepo.findOne({
       where: { id: dto.petId },
@@ -97,7 +137,9 @@ export class WeightRecordService {
         isApproved: true,
         addedByProvider: null,
       });
-      return this.repo.save(row);
+      const saved = await this.repo.save(row);
+      await this.syncPetWeight(pet.id);
+      return saved;
     }
 
     if (role === UserRole.PROVIDER) {
@@ -113,7 +155,9 @@ export class WeightRecordService {
         isApproved: false,
         addedByProvider: provider,
       });
-      return this.repo.save(row);
+      const saved = await this.repo.save(row);
+      await this.syncPetWeight(pet.id);
+      return saved;
     }
 
     throw new ForbiddenException();
@@ -139,7 +183,9 @@ export class WeightRecordService {
         this.assertRecordDateNotInFuture(dto.recordDate);
         row.recordDate = new Date(dto.recordDate);
       }
-      return this.repo.save(row);
+      const saved = await this.repo.save(row);
+      await this.syncPetWeight(row.pet.id);
+      return saved;
     }
 
     if (role === UserRole.PROVIDER) {
@@ -152,7 +198,9 @@ export class WeightRecordService {
         this.assertRecordDateNotInFuture(dto.recordDate);
         row.recordDate = new Date(dto.recordDate);
       }
-      return this.repo.save(row);
+      const saved = await this.repo.save(row);
+      await this.syncPetWeight(row.pet.id);
+      return saved;
     }
 
     throw new ForbiddenException();
@@ -172,7 +220,9 @@ export class WeightRecordService {
     }
     await this.ensureProviderPet(viewerId, row.pet.id);
     row.isApproved = true;
-    return this.repo.save(row);
+    const saved = await this.repo.save(row);
+    await this.syncPetWeight(row.pet.id);
+    return saved;
   }
 
   async remove(viewerId: string, role: UserRole, id: string) {
@@ -185,7 +235,9 @@ export class WeightRecordService {
     if (role === UserRole.OWNER) {
       if (row.pet.owner.user.id !== viewerId) throw new ForbiddenException();
       if (row.addedByProvider) throw new ForbiddenException();
+      const petId = row.pet.id;
       await this.repo.remove(row);
+      await this.syncPetWeight(petId);
       return { deleted: true };
     }
 
@@ -194,7 +246,9 @@ export class WeightRecordService {
       if (!row.addedByProvider || row.addedByProvider.user.id !== viewerId) {
         throw new ForbiddenException();
       }
+      const petId = row.pet.id;
       await this.repo.remove(row);
+      await this.syncPetWeight(petId);
       return { deleted: true };
     }
 
