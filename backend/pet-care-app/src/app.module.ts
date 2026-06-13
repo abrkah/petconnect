@@ -13,6 +13,7 @@ import { PetsModule } from './modules/pets/pets.module';
 import { HealthModule } from './modules/health/health.module';
 import { PetNotesModule } from './modules/pet-notes/pet-notes.module';
 import { ProviderAvailabilityModule } from './modules/provider-availability/provider-availability.module';
+import { NewsletterModule } from './modules/newsletter/newsletter.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -68,6 +69,7 @@ import { AppService } from './app.service';
     BookingsModule,
     PetNotesModule,
     ProviderAvailabilityModule,
+    NewsletterModule,
   ],
 
   controllers: [AppController],
