@@ -6,10 +6,12 @@ import { Pet } from './entities/pet.entity';
 import { OwnerProfile } from '../owner/entities/owner.entity';
 import { ProviderPetAssignment } from '../provider-pet-assignment/entities/provider-pet-assignment.entity';
 import { FileService } from '../common/file.service';
+import { WeightRecordModule } from '../health/weight-record/weight-record.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Pet, OwnerProfile, ProviderPetAssignment]),
+    WeightRecordModule,
   ],
   controllers: [PetsController],
   providers: [PetsService, FileService],
