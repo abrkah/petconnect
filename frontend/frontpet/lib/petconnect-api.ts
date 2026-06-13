@@ -125,3 +125,8 @@ export async function signupApi(body: {
   const { data } = await api.post("/auth/signup", body);
   return data as { message: string };
 }
+
+export async function subscribeNewsletterApi(email: string) {
+  const { data } = await api.post("/newsletter/subscribe", { email });
+  return data as { message: string; alreadySubscribed: boolean };
+}
