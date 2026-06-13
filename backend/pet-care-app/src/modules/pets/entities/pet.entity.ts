@@ -30,7 +30,7 @@ export class Pet {
   age!: number;
 
   @Column('double precision', { nullable: true })
-  weight!: number;
+  weight!: number | null;
 
   @Column({ nullable: true })
   gender!: string;
