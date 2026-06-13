@@ -1,8 +1,27 @@
 "use client";
 
-import { App, ConfigProvider } from "antd";
+import { App, ConfigProvider, unstableSetRender } from "antd";
 import { useLayoutEffect } from "react";
+import { createRoot } from "react-dom/client";
 import { registerNotificationApi } from "@/components/common/actionbutton/notification/notficationmessage";
+
+type ContainerWithRoot = Element & {
+  _antdReactRoot?: ReturnType<typeof createRoot>;
+};
+
+if (typeof window !== "undefined") {
+  unstableSetRender((node, container) => {
+    const host = container as ContainerWithRoot;
+    host._antdReactRoot ??= createRoot(host);
+    const root = host._antdReactRoot;
+    root.render(node);
+    return async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      root.unmount();
+      host._antdReactRoot = undefined;
+    };
+  });
+}
 
 function NotificationRegistrar() {
   const { notification } = App.useApp();
