@@ -34,8 +34,8 @@ const FooterComponent = () => {
         message.info(result.message);
       } else {
         message.success(result.message);
+        setEmail("");
       }
-      setEmail("");
     } catch {
       message.error("Could not subscribe right now. Please try again.");
     } finally {
@@ -210,9 +210,10 @@ const FooterComponent = () => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="min-h-11 shrink-0 rounded-xl bg-teal-500 px-6 font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-busy={submitting}
+                className="min-h-11 shrink-0 rounded-xl bg-teal-500 px-6 font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 disabled:cursor-wait disabled:opacity-70"
               >
-                {submitting ? "Subscribing..." : "Subscribe"}
+                {submitting ? "Sending email..." : "Subscribe"}
               </button>
             </form>
           </div>
