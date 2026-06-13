@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Button,
   Card,
   Form,
@@ -14,13 +15,18 @@ import {
 import { LockOutlined, MailOutlined } from "@ant-design/icons";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { message } from "antd";
 import { motion } from "framer-motion";
 import { BoltIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { loginApi, type UserRole } from "@/lib/petconnect-api";
 import { useAuthenticationStore } from "@/app/utils/uistate/fetures/authentication";
 import { SparklesIcon } from "@heroicons/react/24/solid";
 import MarketingNav from "@/components/MarketingNav";
+import {
+  formatLoginError,
+  getLoginRoleHint,
+  notifyError,
+  notifySuccess,
+} from "@/lib/feedback";
 
 const { Title, Text } = Typography;
 
@@ -30,6 +36,9 @@ export default function LoginInner() {
   const paramRole = searchParams.get("role") as UserRole | null;
 
   const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const roleHint = submitError ? getLoginRoleHint(submitError) : null;
 
   const defaultRole = useMemo<UserRole>(() => {
     if (paramRole === "PROVIDER" || paramRole === "OWNER") return paramRole;
@@ -45,8 +54,10 @@ export default function LoginInner() {
     password: string;
     role: UserRole;
   }) => {
+    setSubmitError(null);
+    setSubmitting(true);
     try {
-      const data = await loginApi(values.email, values.password);
+      const data = await loginApi(values.email, values.password, values.role);
       const {
         setToken,
         setUserId,
@@ -58,7 +69,7 @@ export default function LoginInner() {
       setLoggedUserRole(data.role);
       setIsFirstLogin(data.isFirstLogin);
       localStorage.setItem("login", "true");
-      message.success("Welcome back");
+      notifySuccess("Welcome to PetConnect");
       const r = data.role;
       if (data.isFirstLogin) {
         router.replace(
@@ -68,10 +79,11 @@ export default function LoginInner() {
       }
       router.replace(r === "OWNER" ? "/owner" : "/provider");
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      message.error(
-        err?.response?.data?.message || "Login failed. Check credentials.",
-      );
+      const msg = formatLoginError(e);
+      setSubmitError(msg);
+      notifyError(msg, "Sign in failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -197,9 +209,44 @@ export default function LoginInner() {
                     layout="vertical"
                     initialValues={{ role: defaultRole }}
                     onFinish={onFinish}
+                    onValuesChange={() => setSubmitError(null)}
                     size="large"
                     requiredMark={false}
                   >
+                    {submitError ? (
+                      <Alert
+                        type="error"
+                        showIcon
+                        closable
+                        onClose={() => setSubmitError(null)}
+                        message="Sign in failed"
+                        description={
+                          <div className="space-y-3">
+                            <p className="mb-0 text-sm leading-relaxed">
+                              {submitError}
+                            </p>
+                            {roleHint ? (
+                              <Button
+                                type="link"
+                                size="small"
+                                className="!h-auto !p-0 !text-teal-400 hover:!text-teal-300"
+                                onClick={() => {
+                                  form.setFieldValue("role", roleHint);
+                                  setSubmitError(null);
+                                }}
+                              >
+                                Switch to{" "}
+                                {roleHint === "PROVIDER"
+                                  ? "Service provider"
+                                  : "Pet owner"}{" "}
+                                and try again
+                              </Button>
+                            ) : null}
+                          </div>
+                        }
+                        className="!mb-4 !rounded-xl !border-red-500/30 !bg-red-950/40 [&_.ant-alert-message]:!text-red-200 [&_.ant-alert-description]:!text-red-100/90"
+                      />
+                    ) : null}
                     <Form.Item
                       label={
                         <span className="font-semibold text-slate-300">
@@ -257,6 +304,7 @@ export default function LoginInner() {
                         htmlType="submit"
                         block
                         size="large"
+                        loading={submitting}
                         className="!h-12 !rounded-xl !border-0 !bg-teal-500 !font-bold !text-base !text-white shadow-lg shadow-teal-500/25 hover:!bg-teal-400"
                       >
                         Continue

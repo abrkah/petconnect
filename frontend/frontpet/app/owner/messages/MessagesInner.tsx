@@ -2,18 +2,27 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Form, Input, message as antMessage } from "antd";
+import { Button, Form, Input } from "antd";
 import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
 import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
 import { getPetConnectChatSocket } from "@/lib/petconnect-chat-socket";
 import { api } from "@/lib/petconnect-api";
+import { extractApiError, notifyError, notifyInfo } from "@/lib/feedback";
 import { useAuthenticationStore } from "@/app/utils/uistate/fetures/authentication";
 import { useMessageNotificationsStore } from "@/lib/message-notifications-store";
+import {
+  mergePeerNames,
+  peerDisplayName,
+  peerHue,
+  peerInitial,
+} from "@/lib/message-peer";
+import {
+  formatChatDateDivider,
+  formatChatListTime,
+} from "@/lib/message-dates";
 import dayjs from "dayjs";
-import calendar from "dayjs/plugin/calendar";
 import relativeTime from "dayjs/plugin/relativeTime";
 
-dayjs.extend(calendar);
 dayjs.extend(relativeTime);
 
 type Msg = {
@@ -27,20 +36,8 @@ type Msg = {
 type PeerPresence = {
   online: boolean;
   lastSeenAt: string | null;
+  displayName?: string | null;
 };
-
-function peerInitial(userId: string) {
-  const hex = userId.replace(/-/g, "");
-  const n = parseInt(hex.slice(0, 8), 16);
-  if (Number.isNaN(n)) return "U";
-  return String.fromCharCode(65 + (n % 26));
-}
-
-function peerHue(userId: string) {
-  let h = 0;
-  for (let i = 0; i < userId.length; i++) h = (h + userId.charCodeAt(i) * (i + 1)) % 360;
-  return h;
-}
 
 function lastSeenLabel(p: PeerPresence | undefined): string {
   if (!p) return "…";
@@ -55,9 +52,10 @@ export default function OwnerMessagesInner() {
   const token = useAuthenticationStore((s) => s.token);
   const myId = useAuthenticationStore((s) => s.userId);
 
-  const [threads, setThreads] = useState<{ userId: string; lastMessage: Msg }[]>(
-    [],
-  );
+  const [threads, setThreads] = useState<
+    { userId: string; displayName?: string | null; lastMessage: Msg }[]
+  >([]);
+  const [peerNames, setPeerNames] = useState<Record<string, string>>({});
   const [activePeer, setActivePeer] = useState(withId);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [form] = Form.useForm();
@@ -84,9 +82,22 @@ export default function OwnerMessagesInner() {
     try {
       const { data } = await api.get<{
         total: number;
-        items: { senderUserId: string; unreadCount: number }[];
+        items: {
+          senderUserId: string;
+          senderDisplayName?: string | null;
+          unreadCount: number;
+        }[];
       }>("/message/notifications");
       setSummary(data.total, data.items);
+      setPeerNames((prev) =>
+        mergePeerNames(
+          prev,
+          data.items.map((it) => ({
+            userId: it.senderUserId,
+            displayName: it.senderDisplayName,
+          })),
+        ),
+      );
     } catch {
       /* ignore */
     }
@@ -101,10 +112,11 @@ export default function OwnerMessagesInner() {
   }, []);
 
   const loadInbox = useCallback(async () => {
-    const { data } = await api.get<{ userId: string; lastMessage: Msg }[]>(
-      "/message/inbox",
-    );
+    const { data } = await api.get<
+      { userId: string; displayName?: string | null; lastMessage: Msg }[]
+    >("/message/inbox");
     setThreads(data);
+    setPeerNames((prev) => mergePeerNames(prev, data));
   }, []);
 
   useEffect(() => {
@@ -146,7 +158,15 @@ export default function OwnerMessagesInner() {
     api
       .get<PeerPresence>(`/message/presence/${activePeer}`)
       .then(({ data }) => {
-        if (!cancelled) patchPresence(activePeer, data);
+        if (!cancelled) {
+          patchPresence(activePeer, data);
+          if (data.displayName?.trim()) {
+            setPeerNames((prev) => ({
+              ...prev,
+              [activePeer]: data.displayName!.trim(),
+            }));
+          }
+        }
       })
       .catch(() => {});
     return () => {
@@ -229,19 +249,12 @@ export default function OwnerMessagesInner() {
         (!openAndVisible || document.visibilityState === "hidden");
 
       if (notify) {
-        const title = `New message · User ${msg.senderUserId.slice(0, 8)}`;
-        antMessage.open({
-          type: "info",
-          content: (
-            <span className="text-slate-800">
-              <span className="font-semibold">{title}</span>
-              <span className="mt-1 block line-clamp-2 text-slate-600">
-                {msg.messageText}
-              </span>
-            </span>
-          ),
-          duration: 5,
-        });
+        const senderName = peerDisplayName(
+          msg.senderUserId,
+          peerNames[msg.senderUserId],
+        );
+        const title = `New message · ${senderName}`;
+        notifyInfo(msg.messageText.slice(0, 160), title);
 
         if (
           Notification.permission === "granted" &&
@@ -272,12 +285,12 @@ export default function OwnerMessagesInner() {
       socket.off("message:new", onNewMessage);
       socket.off("message:unread", onUnread);
     };
-  }, [token, myId, loadInbox, patchPresence, fetchUnreadSummary]);
+  }, [token, myId, loadInbox, patchPresence, fetchUnreadSummary, peerNames]);
 
   const send = async (v: { messageText: string }) => {
     const text = v.messageText?.trim();
     if (!activePeer) {
-      antMessage.info("Select a conversation");
+      notifyInfo("Select a conversation to send a message");
       return;
     }
     if (!text) return;
@@ -289,8 +302,8 @@ export default function OwnerMessagesInner() {
       });
       form.resetFields();
       await Promise.all([loadThread(activePeer), loadInbox()]);
-    } catch {
-      antMessage.error("Send failed");
+    } catch (err) {
+      notifyError(extractApiError(err, "Could not send message"));
     } finally {
       setSending(false);
     }
@@ -298,6 +311,12 @@ export default function OwnerMessagesInner() {
 
   const activeHue = activePeer ? peerHue(activePeer) : 160;
   const headerPresence = activePeer ? presenceByUser[activePeer] : undefined;
+  const activePeerName = activePeer
+    ? peerDisplayName(
+        activePeer,
+        peerNames[activePeer] ?? headerPresence?.displayName,
+      )
+    : "";
 
   return (
     <div
@@ -335,6 +354,7 @@ export default function OwnerMessagesInner() {
                 const online = presenceByUser[t.userId]?.online;
                 const unread = unreadByPeer[t.userId] ?? 0;
                 const showUnreadBadge = unread > 0 && !active;
+                const peerName = peerDisplayName(t.userId, t.displayName);
                 return (
                   <li key={t.userId}>
                     <button
@@ -355,7 +375,7 @@ export default function OwnerMessagesInner() {
                               : `linear-gradient(145deg, hsl(${hue} 55% 46%), hsl(${(hue + 40) % 360} 50% 38%))`,
                           }}
                         >
-                          {peerInitial(t.userId)}
+                          {peerInitial(t.displayName, t.userId)}
                         </span>
                         {online ? (
                           <span
@@ -382,17 +402,12 @@ export default function OwnerMessagesInner() {
                           <span
                             className={`truncate ${active ? "font-semibold text-white" : showUnreadBadge ? "font-bold text-slate-900" : "font-semibold text-slate-900"}`}
                           >
-                            {`User ${t.userId.slice(0, 8)}`}
+                            {peerName}
                           </span>
                           <span
                             className={`shrink-0 text-[11px] tabular-nums ${active ? "text-teal-100" : "text-slate-400"}`}
                           >
-                            {dayjs(lm.createdAt).calendar(null, {
-                              sameDay: "[Today], h:mm A",
-                              lastDay: "[Yesterday]",
-                              lastWeek: "ddd",
-                              sameElse: "D MMM",
-                            })}
+                            {formatChatListTime(lm.createdAt)}
                           </span>
                         </div>
                         <p
@@ -432,7 +447,10 @@ export default function OwnerMessagesInner() {
                     background: `linear-gradient(145deg, hsl(${activeHue} 52% 46%), hsl(${(activeHue + 35) % 360} 48% 40%))`,
                   }}
                 >
-                  {peerInitial(activePeer)}
+                  {peerInitial(
+                    peerNames[activePeer] ?? headerPresence?.displayName,
+                    activePeer,
+                  )}
                 </span>
                 {headerPresence?.online ? (
                   <span
@@ -444,7 +462,7 @@ export default function OwnerMessagesInner() {
               </span>
               <div className="min-w-0">
                 <h2 className="truncate text-base font-bold text-slate-900">
-                  User {activePeer.slice(0, 8)}
+                  {activePeerName}
                 </h2>
                 <p className="truncate text-xs text-slate-600">
                   {headerPresence?.online ? (
@@ -485,12 +503,8 @@ export default function OwnerMessagesInner() {
                     <div key={m.id}>
                       {showDateChip ? (
                         <div className="my-4 flex justify-center">
-                          <span className="rounded-full bg-slate-300/35 px-4 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600 backdrop-blur-sm">
-                            {dayjs(m.createdAt).calendar(null, {
-                              sameDay: "Today",
-                              lastDay: "Yesterday",
-                              sameElse: "MMMM D, YYYY",
-                            })}
+                          <span className="rounded-full bg-slate-300/35 px-4 py-1 text-[11px] font-semibold text-slate-600 backdrop-blur-sm">
+                            {formatChatDateDivider(m.createdAt)}
                           </span>
                         </div>
                       ) : null}

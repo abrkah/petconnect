@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Button,
   Card,
   Form,
@@ -17,9 +18,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { BoltIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { signupApi, type UserRole } from "@/lib/petconnect-api";
-import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
 import { SparklesIcon } from "@heroicons/react/24/solid";
 import MarketingNav from "@/components/MarketingNav";
+import {
+  formatRegisterError,
+  notifyError,
+  notifySuccess,
+} from "@/lib/feedback";
 
 const { Title, Text } = Typography;
 
@@ -29,6 +34,8 @@ export default function RegisterInner() {
   const paramRole = searchParams.get("role") as UserRole | null;
 
   const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const defaultRole = useMemo<UserRole>(() => {
     if (paramRole === "PROVIDER" || paramRole === "OWNER") return paramRole;
@@ -45,20 +52,28 @@ export default function RegisterInner() {
     confirm: string;
     role: UserRole;
   }) => {
+    setSubmitError(null);
     if (values.password !== values.confirm) {
-      notifyError("Passwords do not match");
+      const msg = "Passwords do not match.";
+      setSubmitError(msg);
+      notifyError(msg);
       return;
     }
+    setSubmitting(true);
     try {
       await signupApi({
         email: values.email,
         password: values.password,
         role: values.role,
       });
-      notifySuccess("Account created successfully. Please sign in.");
+      notifySuccess("Account created. Please sign in.");
       router.replace(`/login?role=${values.role}`);
     } catch (e: unknown) {
-      notifyError(extractApiError(e, "Registration failed"));
+      const msg = formatRegisterError(e);
+      setSubmitError(msg);
+      notifyError(msg, "Registration failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -146,7 +161,7 @@ export default function RegisterInner() {
                   Already registered?{" "}
                   <Link
                     href="/login"
-                    className="font-semibold text-teal-400 underline decoration-teal-500/40 underline-offset-2 hover:text-teal-300"
+                    className="font-semibold !text-teal-400 underline decoration-teal-500/40 underline-offset-2 hover:text-teal-300"
                   >
                     Sign in
                   </Link>{" "}
@@ -179,9 +194,36 @@ export default function RegisterInner() {
                     layout="vertical"
                     initialValues={{ role: defaultRole }}
                     onFinish={onFinish}
+                    onValuesChange={() => setSubmitError(null)}
                     size="large"
                     requiredMark={false}
                   >
+                    {submitError ? (
+                      <Alert
+                        type="error"
+                        showIcon
+                        closable
+                        onClose={() => setSubmitError(null)}
+                        message="Registration failed"
+                        description={
+                          <p className="mb-0 text-sm leading-relaxed">
+                            {submitError}
+                            {submitError.includes("already exists") ? (
+                              <>
+                                {" "}
+                                <Link
+                                  href="/login"
+                                  className="font-semibold text-teal-400 hover:text-teal-300"
+                                >
+                                  Sign in
+                                </Link>
+                              </>
+                            ) : null}
+                          </p>
+                        }
+                        className="!mb-4 !rounded-xl !border-red-500/30 !bg-red-950/40 [&_.ant-alert-message]:!text-red-200 [&_.ant-alert-description]:!text-red-100/90"
+                      />
+                    ) : null}
                     <Form.Item
                       label={
                         <span className="font-semibold text-slate-300">
@@ -270,6 +312,7 @@ export default function RegisterInner() {
                         htmlType="submit"
                         block
                         size="large"
+                        loading={submitting}
                         className="!h-12 !rounded-xl !border-0 !bg-teal-500 !font-bold !text-base !text-white shadow-lg shadow-teal-500/25 hover:!bg-teal-400"
                       >
                         Create account

@@ -6,6 +6,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from '../user/user.module';
 import { OwnerModule } from '../owner/owner.module';
+import { ProviderModule } from '../provider/provider.module';
+import { PhoneVerificationModule } from '../phone-verification/phone-verification.module';
 import { GoogleStrategy } from './strategy/google.strategy'; 
 import { LocalStrategy } from './strategy/local.strategy';
 import { Type } from 'class-transformer';
@@ -30,6 +32,8 @@ const googleAuthProviders = googleOAuthEnabled
     JwtModule.registerAsync(jwtConfig.asProvider()),
     forwardRef(() => UserModule),
     OwnerModule,
+    ProviderModule,
+    PhoneVerificationModule,
     ConfigModule.forFeature(jwtConfig),
     TypeOrmModule.forFeature([User]),
   ],

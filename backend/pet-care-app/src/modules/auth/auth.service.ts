@@ -31,10 +31,10 @@ export class AuthService {
 
   async validateUser(email: string, password: string) {
     const user = await this.userService.findByEmail(email);
-    if (!user) throw new UnauthorizedException('User Not Found');
+    if (!user) throw new UnauthorizedException('Invalid email or password');
     const isPasswordMatch = await compare(password, user.password);
     if (!isPasswordMatch)
-      throw new UnauthorizedException('Invalid Credentials');
+      throw new UnauthorizedException('Invalid email or password');
     return { id: user.id };
   }
 
