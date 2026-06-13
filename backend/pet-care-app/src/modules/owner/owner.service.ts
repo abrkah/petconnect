@@ -85,6 +85,16 @@ export class OwnerService {
 
         phoneNumber: this.optionalPhone(dto.phoneNumber),
 
+        city: dto.city.trim(),
+
+        address: dto.address?.trim() || null,
+
+        emergencyContactName: dto.emergencyContactName?.trim() || null,
+
+        emergencyContactPhone: this.optionalPhone(dto.emergencyContactPhone),
+
+        notes: dto.notes?.trim() || null,
+
         user: { id: userId } as User,
 
       }),
@@ -156,6 +166,36 @@ export class OwnerService {
     }
 
     if (dto.fullName != null) profile.fullName = dto.fullName;
+
+    if (dto.city != null) profile.city = dto.city.trim();
+
+    if (dto.address !== undefined) {
+
+      profile.address = dto.address?.trim() || null;
+
+    }
+
+    if (dto.emergencyContactName !== undefined) {
+
+      profile.emergencyContactName = dto.emergencyContactName?.trim() || null;
+
+    }
+
+    if (dto.emergencyContactPhone !== undefined) {
+
+      profile.emergencyContactPhone = this.optionalPhone(
+
+        dto.emergencyContactPhone,
+
+      );
+
+    }
+
+    if (dto.notes !== undefined) {
+
+      profile.notes = dto.notes?.trim() || null;
+
+    }
 
     if (dto.profileImage != null) profile.profileImage = dto.profileImage;
 

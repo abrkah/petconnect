@@ -28,6 +28,21 @@ export class OwnerProfile {
   @Column({ type: 'varchar', nullable: true })
   phoneNumber!: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  city!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  address!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  emergencyContactName!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  emergencyContactPhone!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  notes!: string | null;
+
   @Column({ nullable: true })
   profileImage!: string;
 
