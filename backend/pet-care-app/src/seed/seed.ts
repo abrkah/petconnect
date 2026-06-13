@@ -416,7 +416,7 @@ async function seedShowcasePair(
   const weightPoints = [20, 16, 18, 16];
   for (let petIdx = 0; petIdx < pairPets.length; petIdx++) {
     const points = weightPoints[petIdx];
-    const baseKg = pairPets[petIdx].weight;
+    const baseKg = pairPets[petIdx].weight ?? 10;
     for (let m = 0; m < points; m++) {
       const monthsAgo = points - 1 - m;
       const recordDate = new Date();
