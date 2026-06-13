@@ -121,8 +121,8 @@ const HeroSection = () => {
                   transition={{ duration: 0.55, delay: 0.08 }}
                   className="relative"
                 >
-                  <div className="grid grid-cols-6 grid-rows-[repeat(4,minmax(0,1fr))] gap-2 sm:gap-3 lg:h-[min(420px,55vh)] lg:min-h-[320px]">
-                    <div className="relative col-span-6 row-span-2 overflow-hidden rounded-2xl border border-slate-800 shadow-lg sm:rounded-3xl">
+                  <div className="grid h-[min(420px,55vh)] min-h-[320px] grid-cols-6 grid-rows-[repeat(4,minmax(0,1fr))] gap-2 sm:gap-3">
+                    <div className="relative col-span-6 row-span-2 min-h-[140px] overflow-hidden rounded-2xl border border-slate-800 shadow-lg sm:rounded-3xl">
                       <Image
                         src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=1200&q=80"
                         alt="Happy dog outdoors"
@@ -136,24 +136,27 @@ const HeroSection = () => {
                         Your pet&apos;s story — visible to everyone who cares.
                       </p>
                     </div>
-                    <div className="relative col-span-3 row-span-2 overflow-hidden rounded-2xl border border-slate-800 shadow-lg sm:rounded-2xl">
+                                       <div className="relative col-span-3 row-span-2 min-h-[140px] overflow-hidden rounded-2xl border border-slate-800 shadow-lg sm:rounded-2xl">
                       <Image
-                        src="https://images.unsplash.com/photo-1514888287744-e339aab2952e?auto=format&fit=crop&w=800&q=80"
+                        src="https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=800&q=80"
                         alt="Cat relaxing indoors"
                         fill
+                        unoptimized
                         className="object-cover"
                         sizes="(max-width: 1024px) 50vw, 25vw"
                       />
                     </div>
-                    <div className="relative col-span-3 row-span-2 overflow-hidden rounded-2xl border border-slate-800 shadow-lg sm:rounded-2xl">
+                    <div className="relative col-span-3 row-span-2 min-h-[140px] overflow-hidden rounded-2xl border border-slate-800 shadow-lg sm:rounded-2xl">
                       <Image
-                        src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=800&q=80"
+                        src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80"
                         alt="Dog with owner"
                         fill
+                        unoptimized
                         className="object-cover"
                         sizes="(max-width: 1024px) 50vw, 25vw"
                       />
                     </div>
+                  
                   </div>
                 </motion.div>
               </div>

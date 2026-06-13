@@ -6,18 +6,25 @@ const WRONG_RENDER_API = "https://petconnect-api.onrender.com";
 const DEFAULT_RENDER_API = "https://petconnect-api-52ux.onrender.com";
 
 export function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host.endsWith(".vercel.app")) {
+      return DEFAULT_RENDER_API;
+    }
+  }
+
   const raw =
     process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
     "http://localhost:5003";
-  if (raw === WRONG_RENDER_API) {
+  if (raw === WRONG_RENDER_API || raw.includes("petconnect-api.onrender.com")) {
     return DEFAULT_RENDER_API;
   }
   return raw;
 }
 
-const baseURL = getApiBaseUrl();
+export const api: AxiosInstance = axios.create();
 
-export const api: AxiosInstance = axios.create({ baseURL });
+api.defaults.baseURL = getApiBaseUrl();
 
 export function petPhotoSrc(photoUrl?: string | null): string | null {
   if (!photoUrl?.trim()) return null;
@@ -25,7 +32,7 @@ export function petPhotoSrc(photoUrl?: string | null): string | null {
     return photoUrl;
   }
   const path = photoUrl.startsWith("/") ? photoUrl : `/${photoUrl}`;
-  return `${baseURL}${path}`;
+  return `${getApiBaseUrl()}${path}`;
 }
 
 export function buildPetPayload(values: Record<string, unknown>) {
@@ -68,6 +75,7 @@ export function buildPetFormData(
 }
 
 api.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl();
   const token = useAuthenticationStore.getState().token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -82,6 +90,7 @@ api.interceptors.request.use((config) => {
 
 export type UserRole = "OWNER" | "PROVIDER";
 
+<<<<<<< HEAD
 export async function loginApi(
   email: string,
   password: string,
@@ -92,6 +101,10 @@ export async function loginApi(
     password,
     role,
   });
+=======
+export async function loginApi(email: string, password: string) {
+  const { data } = await api.post("/auth/login", { email, password });
+>>>>>>> 3814ec7 (Fix hero images and update API config)
   return data as {
     id: string;
     token: string;
@@ -120,6 +133,11 @@ export async function signupApi(body: {
   password: string;
   role: UserRole;
 }) {
+<<<<<<< HEAD
   const { data } = await axios.post(`${baseURL}/auth/signup`, body);
   return data as { message: string };
+=======
+  const { data } = await api.post("/auth/signup", body);
+  return data as string;
+>>>>>>> 3814ec7 (Fix hero images and update API config)
 }
