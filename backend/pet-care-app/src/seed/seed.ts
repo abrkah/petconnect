@@ -563,12 +563,14 @@ async function seed() {
             user: ou,
             fullName: 'Alex Rivera',
             phoneNumber: '+1 (510) 555-0142',
+            city: 'Vienna',
             profileImage: SHOWCASE_OWNER_IMAGE,
           }
         : {
             user: ou,
             fullName: `Seed Owner ${i + 1}`,
             phoneNumber: `555100${String(i).padStart(4, '0')}`,
+            city: 'Graz',
           },
     );
     await ds.getRepository(OwnerProfile).save(op);
