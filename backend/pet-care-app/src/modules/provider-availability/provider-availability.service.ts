@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProviderAvailability } from './entities/provider-availability.entity';
 import { ProviderProfile } from '../provider/entities/provider.entity';
 import { ReplaceAvailabilityDto } from './dto/replace-availability.dto';
+import { getAvailabilityOverlapMessage } from '../../common/availability-overlap';
 
 @Injectable()
 export class ProviderAvailabilityService {
@@ -30,6 +31,11 @@ export class ProviderAvailabilityService {
     if (!provider) throw new NotFoundException('Provider profile not found');
 
     const slots = dto.slots ?? [];
+
+    const overlapMessage = getAvailabilityOverlapMessage(slots);
+    if (overlapMessage) {
+      throw new BadRequestException(overlapMessage);
+    }
 
     await this.repo
       .createQueryBuilder()
