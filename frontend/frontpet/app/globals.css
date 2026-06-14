@@ -104,6 +104,104 @@ body {
   background-size: auto, auto, auto, 48px 48px;
 }
 
+/* Auth pages — animated mesh + floating orbs */
+.pc-auth-canvas {
+  background-color: #020617;
+  background-image:
+    radial-gradient(
+      ellipse 90% 60% at 50% -15%,
+      rgba(45, 212, 191, 0.14),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 85% 55%,
+      rgba(56, 189, 248, 0.07),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 8% 75%,
+      rgba(139, 92, 246, 0.06),
+      transparent 40%
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cg fill='%23fff' fill-opacity='0.025'%3E%3Cpath d='M28 0v56M0 28h56'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: auto, auto, auto, 56px 56px;
+}
+
+.auth-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  animation: auth-orb-float 18s ease-in-out infinite;
+}
+
+.auth-orb-teal {
+  top: 8%;
+  right: 12%;
+  width: 22rem;
+  height: 22rem;
+  background: rgba(20, 184, 166, 0.12);
+}
+
+.auth-orb-sky {
+  bottom: 10%;
+  left: 5%;
+  width: 18rem;
+  height: 18rem;
+  background: rgba(56, 189, 248, 0.08);
+  animation-delay: -6s;
+}
+
+.auth-orb-violet {
+  top: 45%;
+  left: 40%;
+  width: 14rem;
+  height: 14rem;
+  background: rgba(139, 92, 246, 0.06);
+  animation-delay: -12s;
+}
+
+@keyframes auth-orb-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(24px, -18px) scale(1.05);
+  }
+  66% {
+    transform: translate(-16px, 12px) scale(0.95);
+  }
+}
+
+.auth-card-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(45, 212, 191, 0.25),
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(139, 92, 246, 0.15)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-orb {
+    animation: none;
+  }
+}
+
 /* Ant Design link styles must not strip marketing nav CTA backgrounds */
 .marketing-nav a.nav-cta {
   background-color: #0d9488 !important;
