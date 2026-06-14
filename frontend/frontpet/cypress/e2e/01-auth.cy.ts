@@ -16,7 +16,7 @@ describe("Authentication", () => {
   });
 
   it("shows an error for invalid credentials", () => {
-    cy.visit("/login?role=OWNER");
+    cy.visit("/login");
     cy.get('input[placeholder="you@example.com"]').clear().type("wrong@example.com");
     cy.get(".ant-input-password input").first().type("WrongPass!", { log: false });
     cy.contains("button", "Continue").click();
