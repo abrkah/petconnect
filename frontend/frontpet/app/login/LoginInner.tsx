@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { BoltIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
-import { SparklesIcon } from "@heroicons/react/24/solid";
 import { loginApi } from "@/lib/petconnect-api";
 import { useAuthenticationStore } from "@/app/utils/uistate/fetures/authentication";
 import AuthPageShell from "@/components/auth/AuthPageShell";
@@ -98,26 +97,6 @@ export default function LoginInner() {
           label: "Fast dashboard load",
         },
       ]}
-      sideNote={
-        <div className="flex items-start gap-3">
-          <SparklesIcon className="h-5 w-5 shrink-0 text-amber-400" />
-          <p className="text-sm leading-relaxed text-slate-400">
-            Demo:{" "}
-            <span className="font-mono text-xs text-slate-200">
-              seed-owner-0@petconnect.test
-            </span>{" "}
-            · password{" "}
-            <span className="font-mono text-xs text-slate-200">
-              SeedPass123!
-            </span>{" "}
-            after{" "}
-            <span className="font-mono text-xs text-slate-300">
-              npm run seed
-            </span>{" "}
-            on the API.
-          </p>
-        </div>
-      }
     >
       <motion.div
         initial={{ opacity: 0, y: 12 }}
