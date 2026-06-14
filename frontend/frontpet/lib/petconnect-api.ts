@@ -90,12 +90,8 @@ api.interceptors.request.use((config) => {
 
 export type UserRole = "OWNER" | "PROVIDER";
 
-export async function loginApi(
-  email: string,
-  password: string,
-  role: UserRole,
-) {
-  const { data } = await api.post("/auth/login", { email, password, role });
+export async function loginApi(email: string, password: string) {
+  const { data } = await api.post("/auth/login", { email, password });
   return data as {
     id: string;
     token: string;
