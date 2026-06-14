@@ -50,4 +50,12 @@ export const authSegmentedClassName =
   "[&_.ant-segmented]:!rounded-xl [&_.ant-segmented-item]:!rounded-lg [&_.ant-segmented]:!bg-slate-950 [&_.ant-segmented]:!p-1 [&_.ant-segmented-thumb]:!rounded-lg";
 
 export const authPrimaryButtonClassName =
-  "!h-12 !rounded-xl !border-0 !bg-teal-500 !font-bold !text-base !text-white shadow-lg shadow-teal-500/25 hover:!bg-teal-400";
+  "!h-12 !rounded-xl !border-0 !bg-gradient-to-r !from-teal-500 !to-teal-600 !font-bold !text-base !text-white shadow-lg shadow-teal-500/30 hover:!from-teal-400 hover:!to-teal-500 !transition-all";
+
+export const authFormBoxClassName =
+  "rounded-2xl border border-white/[0.08] bg-slate-950/40 p-6 shadow-xl shadow-black/20 backdrop-blur-sm sm:p-7";
+
+export const authLabelClassName = "text-sm font-medium text-slate-300";
+
+export const authErrorAlertClassName =
+  "!mb-5 !rounded-xl !border-red-500/25 !bg-red-950/30 backdrop-blur-sm [&_.ant-alert-message]:!text-red-200 [&_.ant-alert-description]:!text-red-100/90";
