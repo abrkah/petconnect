@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 
 function uiLogin(email: string, password: string, role: "OWNER" | "PROVIDER") {
-  cy.visit(`/login?role=${role}`);
+  cy.visit("/login");
   cy.get('input[placeholder="you@example.com"]', { timeout: 20_000 })
     .should("be.visible")
     .clear()
