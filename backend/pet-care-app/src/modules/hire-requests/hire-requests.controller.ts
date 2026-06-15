@@ -23,6 +23,21 @@ export class HireRequestsController {
     return this.hireRequestsService.listFor(user.id, user.role);
   }
 
+  @Get('notifications')
+  @Roles(UserRole.OWNER, UserRole.PROVIDER)
+  notifications(@AuthUser() user: CurrentUser) {
+    if (user.role === UserRole.PROVIDER) {
+      return this.hireRequestsService.providerNotifications(user.id);
+    }
+    return this.hireRequestsService.ownerNotifications(user.id);
+  }
+
+  @Patch(':id/mark-seen')
+  @Roles(UserRole.OWNER)
+  markSeen(@AuthUser() user: CurrentUser, @Param('id') id: string) {
+    return this.hireRequestsService.markOwnerSeen(user.id, id);
+  }
+
   @Patch(':id')
   @Roles(UserRole.OWNER, UserRole.PROVIDER)
   update(

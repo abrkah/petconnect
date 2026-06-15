@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import {
   HireRequest,
   HireStatus,
@@ -17,6 +17,7 @@ import { ProviderProfile } from '../provider/entities/provider.entity';
 import { Pet } from '../pets/entities/pet.entity';
 import { ProviderPetAssignment } from '../provider-pet-assignment/entities/provider-pet-assignment.entity';
 import { UserRole } from '../user/entities/user.entity';
+import { ChatGateway } from '../message/chat.gateway';
 
 @Injectable()
 export class HireRequestsService {
@@ -31,6 +32,7 @@ export class HireRequestsService {
     private readonly petRepo: Repository<Pet>,
     @InjectRepository(ProviderPetAssignment)
     private readonly assignRepo: Repository<ProviderPetAssignment>,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   async create(ownerUserId: string, dto: CreateHireRequestDto) {
@@ -57,9 +59,134 @@ export class HireRequestsService {
       owner,
       provider,
       petIds: dto.petIds,
+      message: dto.message?.trim() || null,
       status: HireStatus.PENDING,
     });
-    return this.hireRepo.save(hire);
+    const saved = await this.hireRepo.save(hire);
+
+    const providerWithUser = await this.providerRepo.findOne({
+      where: { id: provider.id },
+      relations: ['user'],
+    });
+    if (providerWithUser?.user) {
+      const pendingCount = await this.countPendingForProvider(provider.id);
+      this.chatGateway.emitHirePending(providerWithUser.user.id, {
+        pendingCount,
+      });
+    }
+
+    return saved;
+  }
+
+  private async countPendingForProvider(providerId: string): Promise<number> {
+    return this.hireRepo.count({
+      where: {
+        provider: { id: providerId },
+        status: HireStatus.PENDING,
+      },
+    });
+  }
+
+  async providerNotifications(providerUserId: string) {
+    const provider = await this.providerRepo.findOne({
+      where: { user: { id: providerUserId } },
+    });
+    if (!provider) return { total: 0, items: [] };
+
+    const pending = await this.hireRepo.find({
+      where: { provider: { id: provider.id }, status: HireStatus.PENDING },
+      relations: ['owner'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      total: pending.length,
+      items: pending.map((hire) => this.toProviderNotificationItem(hire)),
+    };
+  }
+
+  async ownerNotifications(ownerUserId: string) {
+    const owner = await this.ownerRepo.findOne({
+      where: { user: { id: ownerUserId } },
+    });
+    if (!owner) return { total: 0, items: [] };
+
+    const unread = await this.hireRepo.find({
+      where: {
+        owner: { id: owner.id },
+        status: HireStatus.REJECTED,
+        decidedByRole: UserRole.PROVIDER,
+        ownerSeenAt: IsNull(),
+      },
+      relations: ['provider'],
+      order: { updatedAt: 'DESC' },
+    });
+
+    return {
+      total: unread.length,
+      items: unread.map((hire) => this.toOwnerNotificationItem(hire)),
+    };
+  }
+
+  private async countUnreadOwnerRejections(ownerId: string): Promise<number> {
+    return this.hireRepo.count({
+      where: {
+        owner: { id: ownerId },
+        status: HireStatus.REJECTED,
+        decidedByRole: UserRole.PROVIDER,
+        ownerSeenAt: IsNull(),
+      },
+    });
+  }
+
+  private toProviderNotificationItem(hire: HireRequest) {
+    return {
+      id: hire.id,
+      ownerFullName: hire.owner.fullName,
+      message: hire.message,
+      petCount: hire.petIds?.length ?? 0,
+      createdAt:
+        hire.createdAt instanceof Date
+          ? hire.createdAt.toISOString()
+          : String(hire.createdAt),
+    };
+  }
+
+  private toOwnerNotificationItem(hire: HireRequest) {
+    return {
+      id: hire.id,
+      providerFullName: hire.provider.fullName,
+      status: hire.status,
+      message: hire.message,
+      responseMessage: hire.responseMessage,
+      petCount: hire.petIds?.length ?? 0,
+      updatedAt:
+        hire.updatedAt instanceof Date
+          ? hire.updatedAt.toISOString()
+          : String(hire.updatedAt),
+    };
+  }
+
+  async markOwnerSeen(ownerUserId: string, hireId: string) {
+    const owner = await this.ownerRepo.findOne({
+      where: { user: { id: ownerUserId } },
+    });
+    if (!owner) throw new BadRequestException('Owner profile required');
+
+    const hire = await this.hireRepo.findOne({
+      where: { id: hireId, owner: { id: owner.id } },
+      relations: ['owner', 'owner.user'],
+    });
+    if (!hire) throw new NotFoundException('Hire request not found');
+
+    if (!hire.ownerSeenAt) {
+      hire.ownerSeenAt = new Date();
+      await this.hireRepo.save(hire);
+      const unreadCount = await this.countUnreadOwnerRejections(owner.id);
+      this.chatGateway.emitHireOwnerUpdate(ownerUserId, { unreadCount });
+    }
+
+    return hire;
   }
 
   async ownerHasApprovedHire(
@@ -173,9 +300,24 @@ export class HireRequestsService {
         throw new BadRequestException('Invalid status');
       }
       hire.status = dto.status;
+      if (dto.responseMessage !== undefined) {
+        hire.responseMessage = dto.responseMessage.trim() || null;
+      }
+      hire.decidedByRole = UserRole.PROVIDER;
+      if (dto.status === HireStatus.REJECTED) {
+        hire.ownerSeenAt = null;
+      }
       await this.hireRepo.save(hire);
       if (dto.status === HireStatus.APPROVED) {
         await this.activateAssignments(hire);
+      }
+      const pendingCount = await this.countPendingForProvider(hire.provider.id);
+      this.chatGateway.emitHirePending(hire.provider.user.id, { pendingCount });
+      if (dto.status === HireStatus.REJECTED) {
+        const unreadCount = await this.countUnreadOwnerRejections(hire.owner.id);
+        this.chatGateway.emitHireOwnerUpdate(hire.owner.user.id, {
+          unreadCount,
+        });
       }
       return hire;
     }
@@ -189,6 +331,7 @@ export class HireRequestsService {
         throw new BadRequestException('Owners can only cancel with REJECTED');
       }
       hire.status = HireStatus.REJECTED;
+      hire.decidedByRole = UserRole.OWNER;
       await this.hireRepo.save(hire);
       return hire;
     }
