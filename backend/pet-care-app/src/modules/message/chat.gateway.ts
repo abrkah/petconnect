@@ -87,4 +87,16 @@ export class ChatGateway
   emitUnreadBadge(userId: string, totalUnread: number) {
     this.server.to(`user:${userId}`).emit('message:unread', { totalUnread });
   }
+
+  emitHirePending(providerUserId: string, payload: { pendingCount: number }) {
+    this.server
+      .to(`user:${providerUserId}`)
+      .emit('hire:pending', payload);
+  }
+
+  emitHireOwnerUpdate(ownerUserId: string, payload: { unreadCount: number }) {
+    this.server
+      .to(`user:${ownerUserId}`)
+      .emit('hire:owner-update', payload);
+  }
 }
