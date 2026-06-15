@@ -13,7 +13,9 @@ import {
   Form,
   DatePicker,
   Tag,
+  Table,
 } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import Link from "next/link";
 import { api } from "@/lib/petconnect-api";
 import { extractApiError, notifyError, notifySuccess } from "@/lib/feedback";
@@ -36,11 +38,23 @@ type Provider = {
 };
 
 type HireRequestRow = {
+  id: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
-  provider: { id: string };
+  message?: string | null;
+  responseMessage?: string | null;
+  decidedByRole?: string | null;
+  petIds?: string[] | null;
+  createdAt?: string;
+  updatedAt?: string;
+  provider: { id: string; fullName: string };
 };
 
 type HireStatus = "PENDING" | "APPROVED";
+
+type HireFeedback = {
+  status: "REJECTED";
+  responseMessage?: string | null;
+};
 
 function buildHireStatusMap(requests: HireRequestRow[]): Map<string, HireStatus> {
   const map = new Map<string, HireStatus>();
@@ -58,6 +72,38 @@ function buildHireStatusMap(requests: HireRequestRow[]): Map<string, HireStatus>
   return map;
 }
 
+function buildHireFeedbackMap(
+  requests: HireRequestRow[],
+): Map<string, HireFeedback> {
+  const latestByProvider = new Map<string, HireRequestRow>();
+  for (const request of requests) {
+    const providerId = request.provider.id;
+    if (!latestByProvider.has(providerId)) {
+      latestByProvider.set(providerId, request);
+    }
+  }
+
+  const map = new Map<string, HireFeedback>();
+  for (const [providerId, request] of latestByProvider) {
+    if (
+      request.status === "REJECTED" &&
+      request.decidedByRole === "PROVIDER"
+    ) {
+      map.set(providerId, {
+        status: "REJECTED",
+        responseMessage: request.responseMessage,
+      });
+    }
+  }
+  return map;
+}
+
+const hireStatusColor: Record<string, string> = {
+  PENDING: "gold",
+  APPROVED: "green",
+  REJECTED: "red",
+};
+
 export default function OwnerProvidersPage() {
   const [list, setList] = useState<Provider[]>([]);
   const [search, setSearch] = useState("");
@@ -74,13 +120,22 @@ export default function OwnerProvidersPage() {
   const [hireByProvider, setHireByProvider] = useState<Map<string, HireStatus>>(
     () => new Map(),
   );
+  const [hireFeedbackByProvider, setHireFeedbackByProvider] = useState<
+    Map<string, HireFeedback>
+  >(() => new Map());
+  const [hireHistory, setHireHistory] = useState<HireRequestRow[]>([]);
+  const [historyHire, setHistoryHire] = useState<HireRequestRow | null>(null);
 
   const loadHireStatuses = useCallback(async () => {
     try {
       const { data } = await api.get<HireRequestRow[]>("/hire-requests/mine");
+      setHireHistory(data);
       setHireByProvider(buildHireStatusMap(data));
+      setHireFeedbackByProvider(buildHireFeedbackMap(data));
     } catch {
+      setHireHistory([]);
       setHireByProvider(new Map());
+      setHireFeedbackByProvider(new Map());
     }
   }, []);
 
@@ -95,6 +150,68 @@ export default function OwnerProvidersPage() {
     load().catch(() => notifyError("Could not load providers"));
     loadHireStatuses();
   }, [load, loadHireStatuses]);
+
+  const openHireHistory = useCallback(async (hire: HireRequestRow) => {
+    setHistoryHire(hire);
+    if (hire.status === "REJECTED" && hire.decidedByRole === "PROVIDER") {
+      try {
+        await api.patch(`/hire-requests/${hire.id}/mark-seen`);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || hireHistory.length === 0) return;
+    const hireId = new URLSearchParams(window.location.search).get("viewHire");
+    if (!hireId) return;
+    const match = hireHistory.find((h) => h.id === hireId);
+    if (match) void openHireHistory(match);
+  }, [hireHistory, openHireHistory]);
+
+  const historyCols: ColumnsType<HireRequestRow> = [
+    {
+      title: "Provider",
+      render: (_, row) => row.provider.fullName,
+    },
+    {
+      title: "Status",
+      render: (_, row) => (
+        <Tag color={hireStatusColor[row.status] ?? "default"}>
+          {row.status}
+        </Tag>
+      ),
+    },
+    {
+      title: "Your message",
+      ellipsis: true,
+      render: (_, row) => row.message?.trim() || "—",
+    },
+    {
+      title: "Provider reply",
+      ellipsis: true,
+      render: (_, row) =>
+        row.decidedByRole === "PROVIDER" && row.responseMessage?.trim()
+          ? row.responseMessage
+          : "—",
+    },
+    {
+      title: "Date",
+      render: (_, row) =>
+        row.updatedAt
+          ? dayjs(row.updatedAt).format("D MMM YYYY, h:mm A")
+          : "—",
+    },
+    {
+      title: "",
+      render: (_, row) => (
+        <Button size="small" onClick={() => void openHireHistory(row)}>
+          View
+        </Button>
+      ),
+    },
+  ];
 
   const openBook = async (p: Provider) => {
     if (hireByProvider.get(p.id) !== "APPROVED") {
@@ -163,8 +280,10 @@ export default function OwnerProvidersPage() {
       <Row gutter={[16, 16]}>
         {list.map((p) => {
           const hireStatus = hireByProvider.get(p.id);
+          const hireFeedback = hireFeedbackByProvider.get(p.id);
           const isHired = hireStatus === "APPROVED";
           const isPending = hireStatus === "PENDING";
+          const wasDeclined = !isHired && !isPending && hireFeedback?.status === "REJECTED";
 
           return (
           <Col xs={24} md={12} key={p.id}>
@@ -183,6 +302,16 @@ export default function OwnerProvidersPage() {
                 <span className="font-medium text-slate-600">Available: </span>
                 {formatAvailabilitySummary(p.availabilities)}
               </p>
+              {wasDeclined ? (
+                <div className="mb-3 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                  <p className="font-medium">Provider declined your request</p>
+                  {hireFeedback.responseMessage?.trim() ? (
+                    <p className="mt-1 whitespace-pre-wrap text-rose-700">
+                      {hireFeedback.responseMessage}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 {isHired ? (
                   <Button disabled>Hired</Button>
@@ -214,6 +343,19 @@ export default function OwnerProvidersPage() {
           );
         })}
       </Row>
+
+      <Card className="mt-8" title="Hire request history">
+        {hireHistory.length === 0 ? (
+          <p className="text-slate-500">No hire requests yet.</p>
+        ) : (
+          <Table
+            rowKey="id"
+            columns={historyCols}
+            dataSource={hireHistory}
+            pagination={{ pageSize: 8, hideOnSinglePage: true }}
+          />
+        )}
+      </Card>
 
       <Modal
         title={selected ? `Book ${selected.fullName}` : "Book"}
@@ -328,6 +470,63 @@ export default function OwnerProvidersPage() {
             Send request
           </Button>
         </Form>
+      </Modal>
+
+      <Modal
+        title={
+          historyHire
+            ? `Hire request · ${historyHire.provider.fullName}`
+            : "Hire request"
+        }
+        open={!!historyHire}
+        onCancel={() => setHistoryHire(null)}
+        footer={
+          <Button type="primary" onClick={() => setHistoryHire(null)}>
+            Close
+          </Button>
+        }
+        width={560}
+      >
+        {historyHire ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-600">Status:</span>
+              <Tag color={hireStatusColor[historyHire.status] ?? "default"}>
+                {historyHire.status}
+              </Tag>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Your message
+              </p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">
+                {historyHire.message?.trim() || "No message was included."}
+              </p>
+            </div>
+            {historyHire.decidedByRole === "PROVIDER" &&
+            historyHire.status === "REJECTED" ? (
+              <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">
+                  Provider response
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-rose-900">
+                  {historyHire.responseMessage?.trim() ||
+                    "The provider declined without a message."}
+                </p>
+              </div>
+            ) : null}
+            <p className="text-xs text-slate-400">
+              Sent{" "}
+              {historyHire.createdAt
+                ? dayjs(historyHire.createdAt).format("D MMM YYYY, h:mm A")
+                : "—"}
+              {historyHire.updatedAt &&
+              historyHire.updatedAt !== historyHire.createdAt
+                ? ` · Updated ${dayjs(historyHire.updatedAt).format("D MMM YYYY, h:mm A")}`
+                : ""}
+            </p>
+          </div>
+        ) : null}
       </Modal>
     </div>
   );
