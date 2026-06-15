@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Form, Input } from "antd";
 import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
-import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
+import {
+  ChatBubbleLeftRightIcon,
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
 import { getPetConnectChatSocket } from "@/lib/petconnect-chat-socket";
 import { api } from "@/lib/petconnect-api";
 import { extractApiError, notifyError, notifyInfo } from "@/lib/feedback";
@@ -39,6 +42,16 @@ type PeerPresence = {
   displayName?: string | null;
 };
 
+type Contact = {
+  userId: string;
+  displayName?: string | null;
+  subtitle?: string | null;
+  online: boolean;
+  lastSeenAt: string | null;
+};
+
+type SidebarView = "chats" | "contacts";
+
 function lastSeenLabel(p: PeerPresence | undefined): string {
   if (!p) return "…";
   if (p.online) return "online";
@@ -46,11 +59,24 @@ function lastSeenLabel(p: PeerPresence | undefined): string {
   return "recently";
 }
 
+function contactStatusLabel(contact: Contact): string {
+  if (contact.online) return "online";
+  if (contact.lastSeenAt) return `last seen ${dayjs(contact.lastSeenAt).fromNow()}`;
+  return "offline";
+}
+
 export default function OwnerMessagesInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const withId = searchParams.get("with") || "";
   const token = useAuthenticationStore((s) => s.token);
   const myId = useAuthenticationStore((s) => s.userId);
+  const role = useAuthenticationStore((s) => s.loggedUserRole);
+
+  const [sidebarView, setSidebarView] = useState<SidebarView>("chats");
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactSearch, setContactSearch] = useState("");
 
   const [threads, setThreads] = useState<
     { userId: string; displayName?: string | null; lastMessage: Msg }[]
@@ -117,16 +143,91 @@ export default function OwnerMessagesInner() {
     >("/message/inbox");
     setThreads(data);
     setPeerNames((prev) => mergePeerNames(prev, data));
+
+    if (data.length > 0) {
+      try {
+        const { data: presenceMap } = await api.post<
+          Record<string, { online: boolean; lastSeenAt: string | null }>
+        >("/message/presence/batch", {
+          userIds: data.map((row) => row.userId),
+        });
+        setPresenceByUser((prev) => {
+          const next = { ...prev };
+          for (const [userId, presence] of Object.entries(presenceMap)) {
+            next[userId] = { ...next[userId], ...presence };
+          }
+          return next;
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
+
+  const loadContacts = useCallback(async () => {
+    setContactsLoading(true);
+    try {
+      const { data } = await api.get<Contact[]>("/message/contacts");
+      setContacts(data);
+      setPeerNames((prev) =>
+        mergePeerNames(
+          prev,
+          data.map((c) => ({
+            userId: c.userId,
+            displayName: c.displayName,
+          })),
+        ),
+      );
+      setPresenceByUser((prev) => {
+        const next = { ...prev };
+        for (const contact of data) {
+          next[contact.userId] = {
+            online: contact.online,
+            lastSeenAt: contact.lastSeenAt,
+            displayName: contact.displayName,
+          };
+        }
+        return next;
+      });
+    } catch {
+      setContacts([]);
+    } finally {
+      setContactsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     loadInbox().catch(() => {});
+    loadContacts().catch(() => {});
     fetchUnreadSummary().catch(() => {});
-  }, [loadInbox, fetchUnreadSummary]);
+  }, [loadInbox, loadContacts, fetchUnreadSummary]);
 
   useEffect(() => {
-    if (withId) setActivePeer(withId);
+    if (withId) {
+      setActivePeer(withId);
+      setSidebarView("chats");
+    }
   }, [withId]);
+
+  const openChatWith = useCallback(
+    (peerId: string) => {
+      setActivePeer(peerId);
+      setSidebarView("chats");
+      router.replace(`?with=${peerId}`, { scroll: false });
+    },
+    [router],
+  );
+
+  const filteredContacts = useMemo(() => {
+    const q = contactSearch.trim().toLowerCase();
+    if (!q) return contacts;
+    return contacts.filter((c) => {
+      const name = peerDisplayName(c.userId, c.displayName).toLowerCase();
+      return name.includes(q) || (c.subtitle ?? "").toLowerCase().includes(q);
+    });
+  }, [contacts, contactSearch]);
+
+  const contactsLabel = role === "PROVIDER" ? "Owners" : "Providers";
 
   const loadThread = useCallback(async (peerId: string) => {
     if (!peerId) {
@@ -208,6 +309,17 @@ export default function OwnerMessagesInner() {
         online: payload.online,
         lastSeenAt: payload.lastSeenAt,
       });
+      setContacts((prev) =>
+        prev.map((c) =>
+          c.userId === payload.userId
+            ? {
+                ...c,
+                online: payload.online,
+                lastSeenAt: payload.lastSeenAt,
+              }
+            : c,
+        ),
+      );
     };
 
     const onNewMessage = (msg: Msg) => {
@@ -332,13 +444,140 @@ export default function OwnerMessagesInner() {
               <ChatBubbleLeftRightIcon className="h-5 w-5" aria-hidden />
             </span>
             <div>
-              <p className="text-sm font-bold tracking-tight">Chats</p>
+              <p className="text-sm font-bold tracking-tight">Messages</p>
               <p className="text-xs text-slate-500">
-                {threads.length} conversation{threads.length === 1 ? "" : "s"}
+                {sidebarView === "chats"
+                  ? `${threads.length} chat${threads.length === 1 ? "" : "s"}`
+                  : `${contacts.length} contact${contacts.length === 1 ? "" : "s"}`}
               </p>
             </div>
           </div>
+          <div className="mt-3 flex rounded-xl bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => setSidebarView("chats")}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition ${
+                sidebarView === "chats"
+                  ? "bg-white text-teal-700 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <ChatBubbleLeftRightIcon className="h-4 w-4" />
+              Chats
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSidebarView("contacts");
+                loadContacts().catch(() => {});
+              }}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition ${
+                sidebarView === "contacts"
+                  ? "bg-white text-teal-700 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <UserGroupIcon className="h-4 w-4" />
+              {contactsLabel}
+            </button>
+          </div>
         </div>
+
+        {sidebarView === "contacts" ? (
+          <>
+            <div className="border-b border-slate-200/80 px-3 py-2">
+              <Input
+                allowClear
+                placeholder={`Search ${contactsLabel.toLowerCase()}…`}
+                value={contactSearch}
+                onChange={(e) => setContactSearch(e.target.value)}
+                className="!rounded-xl !border-slate-200 !bg-white"
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {contactsLoading ? (
+                <p className="px-4 py-8 text-center text-sm text-slate-500">
+                  Loading contacts…
+                </p>
+              ) : filteredContacts.length === 0 ? (
+                <p className="px-4 py-8 text-center text-sm text-slate-500">
+                  {contacts.length === 0
+                    ? role === "PROVIDER"
+                      ? "No owner contacts yet. They appear after hire requests or messages."
+                      : "No provider contacts yet. Hire a provider or start a chat from Services."
+                    : "No matches for your search."}
+                </p>
+              ) : (
+                <ul className="divide-y divide-slate-100 p-2">
+                  {filteredContacts.map((contact) => {
+                    const hue = peerHue(contact.userId);
+                    const online =
+                      presenceByUser[contact.userId]?.online ?? contact.online;
+                    const lastSeenAt =
+                      presenceByUser[contact.userId]?.lastSeenAt ??
+                      contact.lastSeenAt;
+                    const peerName = peerDisplayName(
+                      contact.userId,
+                      contact.displayName,
+                    );
+                    const statusContact: Contact = {
+                      ...contact,
+                      online,
+                      lastSeenAt,
+                    };
+
+                    return (
+                      <li key={contact.userId}>
+                        <button
+                          type="button"
+                          onClick={() => openChatWith(contact.userId)}
+                          className="flex w-full gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-white"
+                        >
+                          <span className="relative shrink-0">
+                            <span
+                              className="flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-bold text-white shadow-inner ring-2 ring-white/20"
+                              style={{
+                                background: `linear-gradient(145deg, hsl(${hue} 55% 46%), hsl(${(hue + 40) % 360} 50% 38%))`,
+                              }}
+                            >
+                              {peerInitial(contact.displayName, contact.userId)}
+                            </span>
+                            {online ? (
+                              <span
+                                className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 shadow-sm"
+                                title="Online"
+                                aria-hidden
+                              />
+                            ) : null}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold text-slate-900">
+                              {peerName}
+                            </p>
+                            {contact.subtitle ? (
+                              <p className="truncate text-xs text-slate-500">
+                                {contact.subtitle}
+                              </p>
+                            ) : null}
+                            <p
+                              className={`mt-0.5 truncate text-xs ${
+                                online
+                                  ? "font-medium text-emerald-600"
+                                  : "text-slate-400"
+                              }`}
+                            >
+                              {contactStatusLabel(statusContact)}
+                            </p>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </>
+        ) : (
         <div className="flex-1 overflow-y-auto">
           {threads.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-slate-500">
@@ -359,7 +598,7 @@ export default function OwnerMessagesInner() {
                   <li key={t.userId}>
                     <button
                       type="button"
-                      onClick={() => setActivePeer(t.userId)}
+                      onClick={() => openChatWith(t.userId)}
                       className={`flex w-full gap-3 rounded-2xl px-3 py-3 text-left transition ${
                         active
                           ? "bg-teal-600 text-white shadow-md shadow-teal-900/20"
@@ -424,6 +663,7 @@ export default function OwnerMessagesInner() {
             </ul>
           )}
         </div>
+        )}
       </aside>
 
       {/* Conversation */}
@@ -434,7 +674,8 @@ export default function OwnerMessagesInner() {
               <ChatBubbleLeftRightIcon className="h-8 w-8" aria-hidden />
             </span>
             <p className="max-w-sm text-sm font-medium text-slate-700">
-              Select a chat or start one from the provider directory.
+              Select a chat or open the {contactsLabel.toLowerCase()} tab to
+              start messaging.
             </p>
           </div>
         ) : (
