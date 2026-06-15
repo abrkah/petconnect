@@ -7,6 +7,7 @@ import { OwnerProfile } from '../owner/entities/owner.entity';
 import { ProviderProfile } from '../provider/entities/provider.entity';
 import { Pet } from '../pets/entities/pet.entity';
 import { ProviderPetAssignment } from '../provider-pet-assignment/entities/provider-pet-assignment.entity';
+import { MessageModule } from '../message/message.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ProviderPetAssignment } from '../provider-pet-assignment/entities/provi
       Pet,
       ProviderPetAssignment,
     ]),
+    MessageModule,
   ],
   controllers: [HireRequestsController],
   providers: [HireRequestsService],
