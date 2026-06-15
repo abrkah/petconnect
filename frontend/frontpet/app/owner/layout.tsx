@@ -109,7 +109,13 @@ export default function OwnerLayout({
       brandHref="/owner"
       brandTitle="PetConnect"
       menuItems={topItems}
-      notificationBell={<MessageNotificationBell messagesHref="/owner/messages" />}
+      notificationBell={
+        <MessageNotificationBell
+          messagesHref="/owner/messages"
+          showOwnerHireUpdates
+          ownerHireHref="/owner/providers"
+        />
+      }
       onLogout={() => {
         logout();
         router.push("/");
