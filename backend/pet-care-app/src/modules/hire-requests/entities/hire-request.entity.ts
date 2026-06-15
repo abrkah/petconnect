@@ -33,11 +33,20 @@ export class HireRequest {
   @Column({ type: 'enum', enum: HireStatus, default: HireStatus.PENDING })
   status!: HireStatus;
 
-  @Column({ nullable: true })
-  message!: string;
+  @Column({ type: 'text', nullable: true })
+  message!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  responseMessage!: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
   petIds!: string[] | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  decidedByRole!: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  ownerSeenAt!: Date | null;
 
   @CreateDateColumn()
   createdAt!: Date;
