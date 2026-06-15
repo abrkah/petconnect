@@ -22,6 +22,16 @@ export class MessageController {
     return this.messageService.inbox(user.id);
   }
 
+  @Get('contacts')
+  contacts(@AuthUser() user: CurrentUser) {
+    return this.messageService.contacts(user.id, user.role);
+  }
+
+  @Post('presence/batch')
+  batchPresence(@Body() body: { userIds?: string[] }) {
+    return this.messageService.presenceBatch(body.userIds ?? []);
+  }
+
   @Get('notifications')
   notifications(@AuthUser() user: CurrentUser) {
     return this.messageService.unreadNotifications(user.id);

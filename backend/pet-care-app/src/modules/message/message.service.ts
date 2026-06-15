@@ -7,8 +7,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
-import { User } from '../user/entities/user.entity';
+import { User, UserRole } from '../user/entities/user.entity';
 import { ChatGateway } from './chat.gateway';
+import { PresenceService } from './presence.service';
+import { OwnerProfile } from '../owner/entities/owner.entity';
+import { ProviderProfile } from '../provider/entities/provider.entity';
+import { HireRequest } from '../hire-requests/entities/hire-request.entity';
+import { ProviderPetAssignment } from '../provider-pet-assignment/entities/provider-pet-assignment.entity';
 
 @Injectable()
 export class MessageService {
@@ -17,7 +22,16 @@ export class MessageService {
     private readonly repo: Repository<Message>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(OwnerProfile)
+    private readonly ownerRepo: Repository<OwnerProfile>,
+    @InjectRepository(ProviderProfile)
+    private readonly providerRepo: Repository<ProviderProfile>,
+    @InjectRepository(HireRequest)
+    private readonly hireRepo: Repository<HireRequest>,
+    @InjectRepository(ProviderPetAssignment)
+    private readonly assignRepo: Repository<ProviderPetAssignment>,
     private readonly chatGateway: ChatGateway,
+    private readonly presence: PresenceService,
   ) {}
 
   async getDisplayName(userId: string): Promise<string | null> {
@@ -180,5 +194,110 @@ export class MessageService {
       displayName: displayNames.get(peerId) ?? null,
       lastMessage,
     }));
+  }
+
+  async contacts(userId: string, role: UserRole) {
+    const peerMeta = new Map<
+      string,
+      { displayName?: string | null; subtitle?: string | null }
+    >();
+
+    const addPeer = (
+      peerUserId: string | undefined,
+      meta: { displayName?: string | null; subtitle?: string | null },
+    ) => {
+      if (!peerUserId || peerUserId === userId) return;
+      const existing = peerMeta.get(peerUserId);
+      peerMeta.set(peerUserId, {
+        displayName: meta.displayName ?? existing?.displayName ?? null,
+        subtitle: meta.subtitle ?? existing?.subtitle ?? null,
+      });
+    };
+
+    if (role === UserRole.OWNER) {
+      const owner = await this.ownerRepo.findOne({
+        where: { user: { id: userId } },
+      });
+      if (owner) {
+        const hires = await this.hireRepo.find({
+          where: { owner: { id: owner.id } },
+          relations: ['provider', 'provider.user'],
+        });
+        for (const hire of hires) {
+          addPeer(hire.provider.user?.id, {
+            displayName: hire.provider.fullName,
+            subtitle: 'Service provider',
+          });
+        }
+      }
+    } else {
+      const provider = await this.providerRepo.findOne({
+        where: { user: { id: userId } },
+      });
+      if (provider) {
+        const hires = await this.hireRepo.find({
+          where: { provider: { id: provider.id } },
+          relations: ['owner', 'owner.user'],
+        });
+        for (const hire of hires) {
+          addPeer(hire.owner.user?.id, {
+            displayName: hire.owner.fullName,
+            subtitle: 'Pet owner',
+          });
+        }
+
+        const assignments = await this.assignRepo.find({
+          where: { provider: { id: provider.id }, isActive: true },
+          relations: ['owner', 'owner.user'],
+        });
+        for (const row of assignments) {
+          addPeer(row.owner.user?.id, {
+            displayName: row.owner.fullName,
+            subtitle: 'Pet owner',
+          });
+        }
+      }
+    }
+
+    const inboxRows = await this.inbox(userId);
+    for (const row of inboxRows) {
+      addPeer(row.userId, {
+        displayName: row.displayName,
+        subtitle:
+          role === UserRole.OWNER ? 'Service provider' : 'Pet owner',
+      });
+    }
+
+    const peerIds = [...peerMeta.keys()];
+    const displayNames = await this.getDisplayNames(peerIds);
+
+    const items = await Promise.all(
+      peerIds.map(async (peerId) => {
+        const meta = peerMeta.get(peerId)!;
+        const presence = await this.presence.getPresence(peerId);
+        return {
+          userId: peerId,
+          displayName: displayNames.get(peerId) ?? meta.displayName ?? null,
+          subtitle: meta.subtitle ?? null,
+          online: presence.online,
+          lastSeenAt: presence.lastSeenAt,
+        };
+      }),
+    );
+
+    items.sort((a, b) => {
+      if (a.online !== b.online) return a.online ? -1 : 1;
+      return (a.displayName ?? '').localeCompare(b.displayName ?? '');
+    });
+
+    return items;
+  }
+
+  async presenceBatch(userIds: string[]) {
+    const unique = [...new Set(userIds.filter(Boolean))];
+    const entries = await Promise.all(
+      unique.map(async (id) => [id, await this.presence.getPresence(id)] as const),
+    );
+    return Object.fromEntries(entries);
   }
 }
