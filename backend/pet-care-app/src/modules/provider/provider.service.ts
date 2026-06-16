@@ -238,15 +238,9 @@ export class ProviderService {
     }
 
     if (q.search?.trim()) {
-
-      qb.andWhere(
-
-        '(LOWER(p.fullName) LIKE LOWER(:s) OR LOWER(p.bio) LIKE LOWER(:s))',
-
-        { s: `%${q.search.trim()}%` },
-
-      );
-
+      qb.andWhere('p.fullName ILIKE :s', {
+        s: `%${q.search.trim()}%`,
+      });
     }
 
 

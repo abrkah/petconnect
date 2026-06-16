@@ -106,7 +106,8 @@ const hireStatusColor: Record<string, string> = {
 
 export default function OwnerProvidersPage() {
   const [list, setList] = useState<Provider[]>([]);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [serviceType, setServiceType] = useState<string | undefined>();
   const [sort, setSort] = useState<"name" | "price_asc" | "price_desc">("name");
   const [avail, setAvail] = useState<unknown[]>([]);
@@ -140,16 +141,30 @@ export default function OwnerProvidersPage() {
   }, []);
 
   const load = useCallback(async () => {
+    const params: Record<string, string> = { sort };
+    if (appliedSearch) params.search = appliedSearch;
+    if (serviceType) params.serviceType = serviceType;
+
     const { data } = await api.get<Provider[]>("/provider/directory", {
-      params: { search, serviceType, sort },
+      params,
     });
     setList(data);
-  }, [search, serviceType, sort]);
+  }, [appliedSearch, serviceType, sort]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setAppliedSearch(searchInput.trim());
+    }, 300);
+    return () => window.clearTimeout(id);
+  }, [searchInput]);
 
   useEffect(() => {
     load().catch(() => notifyError("Could not load providers"));
+  }, [load]);
+
+  useEffect(() => {
     loadHireStatuses();
-  }, [load, loadHireStatuses]);
+  }, [loadHireStatuses]);
 
   const openHireHistory = useCallback(async (hire: HireRequestRow) => {
     setHistoryHire(hire);
@@ -248,7 +263,13 @@ export default function OwnerProvidersPage() {
       <div className="flex flex-wrap gap-3 mb-6">
         <Input.Search
           placeholder="Search by name"
-          onSearch={setSearch}
+          value={searchInput}
+          onChange={(e) => {
+            const value = e.target.value;
+            setSearchInput(value);
+            if (!value) setAppliedSearch("");
+          }}
+          onSearch={(value) => setAppliedSearch(value.trim())}
           allowClear
           className="max-w-xs"
         />
@@ -273,7 +294,10 @@ export default function OwnerProvidersPage() {
             { value: "price_desc", label: "Price high–low" },
           ]}
         />
-        <Button type="primary" onClick={() => load()}>
+        <Button
+          type="primary"
+          onClick={() => setAppliedSearch(searchInput.trim())}
+        >
           Apply
         </Button>
       </div>
