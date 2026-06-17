@@ -76,7 +76,7 @@ const HeroSection = () => {
                   </h1>
                   <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-400 sm:text-lg">
                     PetConnect helps owners track health, message providers, and
-                    book services—while professionals manage pets, schedules, and
+                    book serviceswhile professionals manage pets, schedules, and
                     records in a single workflow.
                   </p>
                   <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -133,7 +133,7 @@ const HeroSection = () => {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
                       <p className="absolute bottom-3 left-3 right-3 text-sm font-medium text-white drop-shadow sm:bottom-4 sm:left-4">
-                        Your pet&apos;s story — visible to everyone who cares.
+                        Your pet&apos;s story - visible to everyone who cares.
                       </p>
                     </div>
                                        <div className="relative col-span-3 row-span-2 min-h-[140px] overflow-hidden rounded-2xl border border-slate-800 shadow-lg sm:rounded-2xl">
@@ -176,7 +176,7 @@ const HeroSection = () => {
               </h2>
               <p className="mt-4 text-lg text-slate-400">
                 Owners get a calm dashboard; providers get hire requests,
-                bookings, and clinical-style records—with approval flows so
+                bookings, and clinical style records with approval flows so
                 everyone sees the right data.
               </p>
             </div>

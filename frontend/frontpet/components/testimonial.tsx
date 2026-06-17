@@ -23,7 +23,7 @@ const testimonials = [
     role: "Grooming studio owner",
     image: "/testmonial3.jfif",
     review:
-      "Our team lives in the provider dashboard—hire requests, messaging, and records without the spreadsheet chaos.",
+      "Our team lives in the provider dashboard hire requests, messaging, and records without the spreadsheet chaos.",
   },
   {
     name: "Daniel Lee",
@@ -68,7 +68,7 @@ const TestimonialsSection = () => {
           Real stories from owners &amp; providers
         </h2>
         <p className="mt-3 text-base text-slate-400 sm:text-lg">
-          A calmer way to coordinate care—from vaccines and weight checks to
+          A calmer way to coordinate care from vaccines and weight checks to
           bookings and chat.
         </p>
       </div>

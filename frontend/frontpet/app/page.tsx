@@ -28,7 +28,7 @@ const LandingPage = () => {
     {
       icon: SparklesIcon,
       title: "Modern UX",
-      text: "Fast flows, clear status, and a UI that feels calm—not cluttered.",
+      text: "Fast flows, clear status, and a UI that feels calm, not cluttered.",
     },
   ];
 
@@ -98,7 +98,7 @@ const LandingPage = () => {
               Ready when your pets are
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-400">
-              Sign in with your role or create an account in under a minute—same
+              Sign in with your role or create an account in under a minute, same
               polished experience on web.
             </p>
             <div className="mt-10 flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:justify-center">

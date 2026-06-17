@@ -12,13 +12,15 @@ describe("Owner app shell & navigation", () => {
     cy.location("pathname", { timeout: 15_000 }).should("include", pathPart);
   };
 
-  it("navigates via sidebar: pets, bookings, services, messages, profile", () => {
+  it("navigates via sidebar: pets, bookings, services, hire requests, messages, profile", () => {
     nav(/my pets/i, "/owner/pets");
     cy.contains(/pet|add pet|my pets/i).should("exist");
 
     nav(/bookings/i, "/owner/bookings");
 
     nav(/services/i, "/owner/providers");
+
+    nav(/hire requests/i, "/owner/hire-requests");
 
     nav(/messages/i, "/owner/messages");
     cy.get('[aria-label="Messages"]').should("exist");

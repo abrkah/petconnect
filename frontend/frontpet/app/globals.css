@@ -213,8 +213,10 @@ body {
   color: #ffffff !important;
 }
 
-/* Provider availability — pointer on dropdowns, not text caret */
+/* Searchable selects — pointer on dropdowns, not text caret */
 .availability-slot-selects .ant-select-selector,
-.availability-slot-selects .ant-select-selection-search-input {
+.availability-slot-selects .ant-select-selection-search-input,
+.petconnect-pointer-select .ant-select-selector,
+.petconnect-pointer-select .ant-select-selection-search-input {
   cursor: pointer !important;
 }
