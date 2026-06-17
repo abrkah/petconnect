@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Avatar } from "antd";
 import { motion } from "framer-motion";
 
 const testimonials = [
@@ -95,11 +94,13 @@ const TestimonialsSection = () => {
               “{testimonial.review}”
             </p>
             <div className="mt-6 flex items-center gap-4 border-t border-slate-800 pt-5">
-              <Avatar
-                src={testimonial.image}
-                size={56}
-                className="ring-2 ring-teal-900"
-              />
+              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full ring-2 ring-teal-900">
+                <img
+                  src={testimonial.image}
+                  alt={testimonial.name}
+                  className="h-full w-full object-cover"
+                />
+              </div>
               <div>
                 <h4 className="font-semibold text-white">
                   {testimonial.name}
