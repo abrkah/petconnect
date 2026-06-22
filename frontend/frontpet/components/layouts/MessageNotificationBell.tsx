@@ -39,7 +39,7 @@ export default function MessageNotificationBell({
   showHireRequests = false,
   showOwnerHireUpdates = false,
   hireRequestsHref = "/provider",
-  ownerHireHref = "/owner/providers",
+  ownerHireHref = "/owner/hire-requests",
   className = "",
 }: Props) {
   const token = useAuthenticationStore((s) => s.token);

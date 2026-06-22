@@ -84,7 +84,7 @@ const FooterComponent = () => {
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-400">
               The easiest way to manage pets, appointments, and health records
-              in one modern workspace—for families and the pros who support
+              in one modern workspace, for families and the pros who support
               them.
             </p>
             <div className="mt-6 flex gap-4 text-xl text-slate-400">

@@ -7,6 +7,7 @@ import {
   HeartOutlined,
   CalendarOutlined,
   TeamOutlined,
+  SendOutlined,
   MessageOutlined,
   UserOutlined,
 } from "@ant-design/icons";
@@ -87,6 +88,12 @@ export default function OwnerLayout({
       label: <Link href="/owner/providers">Services</Link>,
     },
     {
+      key: "/owner/hire-requests",
+      title: "Hire requests",
+      icon: <SendOutlined />,
+      label: <Link href="/owner/hire-requests">Hire requests</Link>,
+    },
+    {
       key: "/owner/messages",
       title: "Messages",
       icon: <MessageOutlined />,
@@ -113,7 +120,7 @@ export default function OwnerLayout({
         <MessageNotificationBell
           messagesHref="/owner/messages"
           showOwnerHireUpdates
-          ownerHireHref="/owner/providers"
+          ownerHireHref="/owner/hire-requests"
         />
       }
       onLogout={() => {

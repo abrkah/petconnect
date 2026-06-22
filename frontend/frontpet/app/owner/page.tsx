@@ -279,8 +279,8 @@ export default function OwnerHomePage() {
               {ownerName ? `, ${ownerName.split(" ")[0]}` : ""}
             </h2>
             <p className="text-base leading-relaxed text-teal-50/95 sm:text-lg">
-              Track weight, vaccinations, and bookings in one calm workspace —
-              tailored for busy pet parents.
+              Track weight, vaccinations, and bookings in one calm workspace, 
+              built for busy pet parents.
             </p>
           </div>
 

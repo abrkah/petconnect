@@ -23,6 +23,7 @@ import {
   serviceTypeIcon,
   serviceTypeLabel,
 } from "@/lib/service-icons";
+import { AVAILABILITY_TIME_OPTIONS } from "@/lib/availability";
 
 type Booking = {
   id: string;
@@ -68,6 +69,15 @@ function providerInitials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase() || "?";
+}
+
+function timeSlotOptions(current?: string | null) {
+  const options = [...AVAILABILITY_TIME_OPTIONS];
+  const trimmed = current?.trim();
+  if (trimmed && !options.some((option) => option.value === trimmed)) {
+    options.unshift({ value: trimmed, label: trimmed });
+  }
+  return options;
 }
 
 export default function OwnerBookingsPage() {
@@ -359,7 +369,14 @@ export default function OwnerBookingsPage() {
               <DatePicker className="w-full" />
             </Form.Item>
             <Form.Item name="timeSlot" label="Time (optional)">
-              <Input placeholder="e.g. 09:00" />
+              <Select
+                allowClear
+                className="petconnect-pointer-select w-full"
+                placeholder="Select time"
+                options={timeSlotOptions(editing.timeSlot)}
+                showSearch
+                optionFilterProp="label"
+              />
             </Form.Item>
             <Button type="primary" htmlType="submit" block loading={submitting}>
               Save changes

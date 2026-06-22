@@ -86,7 +86,7 @@ export default function LoginInner() {
           </span>
         </>
       }
-      description="Sign in with your email and password—we'll take you to the right dashboard automatically."
+      description="Sign in with your email and password, we'll take you to the right dashboard automatically."
       features={[
         {
           icon: <ShieldCheckIcon className="h-4 w-4" />,
